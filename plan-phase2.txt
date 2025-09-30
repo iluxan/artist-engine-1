@@ -1,0 +1,297 @@
+# EVENT DISCOVERY AGENT - PHASE 2 PLAN
+
+## STATUS: ✓ COMPLETED
+
+## Overview
+Phase 2 adds data persistence, database integration, and full CRUD operations to allow users to save and manage their tracked people and discovered sources across sessions.
+
+## Implementation Progress
+
+### ✓ Step 1: Database Setup (COMPLETED)
+- [x] Installed better-sqlite3
+- [x] Created db.js module with schema
+- [x] Implemented all database query functions
+- [x] Database auto-initializes on startup
+
+### ✓ Step 2: Backend API (COMPLETED)
+- [x] All people CRUD endpoints implemented
+- [x] All sources CRUD endpoints implemented
+- [x] Modified /api/discover-sources to support save_to_db
+- [x] Error handling and validation added
+
+### ✓ Step 3: Frontend (COMPLETED)
+- [x] Created "My People" view with person cards
+- [x] Created person detail view with sources
+- [x] Created add/edit person form
+- [x] Updated discovery view with save option
+- [x] Implemented navigation between views
+- [x] Added confirmation dialogs
+- [x] Added all styling for new components
+
+### ✓ Step 4: Testing & Documentation (COMPLETED)
+- [x] Server running successfully
+- [x] Database initialized
+- [x] README updated with Phase 2 features
+- [x] All API endpoints documented
+- [x] Database schema documented
+
+## Goals
+1. Persist user data (people and their sources) in a database
+2. Enable users to view, add, edit, and delete tracked people
+3. Store discovered sources with metadata (confidence, discovery date, last checked)
+4. Build a saved people management interface
+
+## Database Design
+
+### Technology Choice: SQLite
+- Lightweight, serverless, perfect for local/personal use
+- No additional setup required
+- Easy migration to PostgreSQL later if needed
+
+### Schema
+
+TABLE: people
+- id (INTEGER PRIMARY KEY AUTOINCREMENT)
+- name (TEXT NOT NULL)
+- notes (TEXT)
+- created_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- updated_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+
+TABLE: sources
+- id (INTEGER PRIMARY KEY AUTOINCREMENT)
+- person_id (INTEGER FOREIGN KEY -> people.id)
+- type (TEXT NOT NULL) - twitter, website, instagram, eventbrite, etc.
+- url (TEXT NOT NULL)
+- confidence (TEXT) - high, medium, low
+- discovered_at (DATETIME DEFAULT CURRENT_TIMESTAMP)
+- last_checked (DATETIME)
+- status (TEXT) - active, inactive, verified, broken
+- UNIQUE(person_id, url)
+
+TABLE: events (future phase 3)
+- id (INTEGER PRIMARY KEY AUTOINCREMENT)
+- person_id (INTEGER FOREIGN KEY -> people.id)
+- source_id (INTEGER FOREIGN KEY -> sources.id)
+- title (TEXT)
+- date (DATETIME)
+- location (TEXT)
+- url (TEXT)
+- discovered_at (DATETIME)
+
+## Backend Changes
+
+### New Dependencies
+- sqlite3 or better-sqlite3 (for SQLite integration)
+- Add database connection pooling if using PostgreSQL
+
+### New API Endpoints
+
+1. GET /api/people
+   - Returns all saved people with their source counts
+   - Response: [{ id, name, notes, source_count, created_at }]
+
+2. GET /api/people/:id
+   - Returns a specific person with all their sources
+   - Response: { id, name, notes, sources: [...], created_at }
+
+3. POST /api/people
+   - Creates a new person to track
+   - Body: { name, notes? }
+   - Response: { id, name, notes, created_at }
+
+4. PUT /api/people/:id
+   - Updates a person's information
+   - Body: { name?, notes? }
+   - Response: { id, name, notes, updated_at }
+
+5. DELETE /api/people/:id
+   - Deletes a person and all their sources
+   - Response: { success: true }
+
+6. POST /api/people/:id/discover
+   - Runs source discovery for a specific saved person
+   - Automatically saves new sources to database
+   - Response: { person_id, new_sources: [...], total_sources: N }
+
+7. GET /api/people/:id/sources
+   - Returns all sources for a person
+   - Response: [{ id, type, url, confidence, status, discovered_at }]
+
+8. POST /api/sources
+   - Manually add a source to a person
+   - Body: { person_id, type, url, confidence? }
+   - Response: { id, person_id, type, url, confidence }
+
+9. PUT /api/sources/:id
+   - Update a source (e.g., change status, confidence)
+   - Body: { status?, confidence?, notes? }
+   - Response: { id, ...updated_fields }
+
+10. DELETE /api/sources/:id
+    - Delete a specific source
+    - Response: { success: true }
+
+### Database Module (db.js)
+- Initialize SQLite database
+- Create tables if they don't exist
+- Export query functions:
+  - getAllPeople()
+  - getPersonById(id)
+  - createPerson(name, notes)
+  - updatePerson(id, data)
+  - deletePerson(id)
+  - getSourcesByPersonId(personId)
+  - createSource(personId, type, url, confidence)
+  - updateSource(id, data)
+  - deleteSource(id)
+  - bulkCreateSources(personId, sources)
+
+### Modified Endpoints
+
+POST /api/discover-sources (existing)
+- Add optional parameter: save_to_db (boolean)
+- If true, create person records and save sources automatically
+- Return person IDs in response
+
+## Frontend Changes
+
+### New Pages/Views
+
+1. Saved People View (new default landing page)
+   - List of all saved people
+   - Show name, number of sources, last updated
+   - Actions: View Sources, Discover More, Edit, Delete
+   - "Add New Person" button
+
+2. Person Detail View
+   - Person name and notes
+   - List of all discovered sources grouped by type
+   - Status indicators (verified, broken, etc.)
+   - "Run Discovery Again" button
+   - Edit person details
+   - Delete person
+
+3. Add/Edit Person Form
+   - Name input (required)
+   - Notes textarea (optional)
+   - Save/Cancel buttons
+
+4. Discovery Flow (modified existing)
+   - Option to save results to database
+   - Show "Saved!" confirmation
+   - Link to view saved person
+
+### UI Components
+
+Component: PersonCard
+- Display person info in card format
+- Quick actions (view, edit, delete)
+
+Component: SourceList
+- Display sources grouped by type
+- Confidence badges
+- Status indicators
+- Manual add source option
+
+Component: ConfirmDialog
+- Reusable confirmation for delete actions
+
+### Navigation
+- Home (Saved People)
+- Discover New (existing discovery flow)
+- About
+
+## Implementation Steps
+
+### Step 1: Database Setup
+1. Install sqlite3 or better-sqlite3
+2. Create db.js module
+3. Define schema and migrations
+4. Write query functions
+5. Test database operations
+
+### Step 2: Backend API
+1. Integrate db.js into server.js
+2. Implement all new API endpoints
+3. Modify existing /api/discover-sources to support saving
+4. Add error handling and validation
+5. Test all endpoints with curl/Postman
+
+### Step 3: Frontend - Saved People View
+1. Create people list page (HTML structure)
+2. Fetch and display saved people
+3. Add person card styling
+4. Implement delete with confirmation
+5. Add "Add New Person" flow
+
+### Step 4: Frontend - Person Detail View
+1. Create person detail page
+2. Fetch and display person with sources
+3. Group sources by type
+4. Add "Discover More" functionality
+5. Implement edit person details
+
+### Step 5: Frontend - Discovery Integration
+1. Modify discovery flow to save results
+2. Add "Save to Database" option
+3. Show save confirmation
+4. Link to saved person view
+
+### Step 6: Polish & Testing
+1. Add loading states
+2. Improve error handling
+3. Add input validation
+4. Test full user flows
+5. Update README
+
+## Testing Plan
+
+### Unit Tests
+- Database query functions
+- Source discovery logic
+- API endpoint validation
+
+### Integration Tests
+- Full CRUD flows for people
+- Full CRUD flows for sources
+- Discovery + save flow
+
+### Manual Testing
+- Add/edit/delete person
+- View sources
+- Run discovery multiple times
+- Handle duplicate sources
+- Test empty states
+
+## Success Criteria
+- [ ] User can save people to track
+- [ ] User can view all saved people
+- [ ] User can view sources for each person
+- [ ] User can run discovery for saved people
+- [ ] User can manually add/edit/delete sources
+- [ ] Data persists across server restarts
+- [ ] No duplicate sources are created
+- [ ] Clean, intuitive UI for all operations
+
+## Future Considerations (Phase 3)
+- Automatic scheduled re-discovery
+- Event parsing from discovered sources
+- Email/push notifications for new events
+- Source verification (check if URLs are valid)
+- Rate limiting for source discovery
+- Multi-user support with authentication
+- Export data (JSON, CSV)
+
+## Estimated Timeline
+- Database Setup: 2-3 hours
+- Backend API: 4-5 hours
+- Frontend Views: 5-6 hours
+- Testing & Polish: 2-3 hours
+Total: 13-17 hours
+
+## Notes
+- Keep the UI simple and functional
+- Focus on core CRUD operations first
+- Polish can come later
+- Ensure good error messages for user guidance
+- Consider adding data validation (e.g., URL format checking)

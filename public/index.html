@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Discovery Agent</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Event Discovery Agent</h1>
+      <p class="subtitle">Find events from people you care about</p>
+      <nav class="main-nav">
+        <a href="#" data-page="people" class="nav-link active">My People</a>
+        <a href="#" data-page="discover" class="nav-link">Discover New</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Saved People View -->
+      <section id="peopleView" class="view-section">
+        <div class="section-header">
+          <h2>Saved People</h2>
+          <button id="addPersonBtn" class="btn-primary">Add Person</button>
+        </div>
+
+        <div id="peopleList" class="people-list">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading people...</p>
+          </div>
+        </div>
+
+        <div id="emptyState" class="empty-state hidden">
+          <p>No people saved yet. Click "Add Person" or "Discover New" to get started!</p>
+        </div>
+      </section>
+
+      <!-- Person Detail View -->
+      <section id="personDetailView" class="view-section hidden">
+        <div class="back-nav">
+          <button id="backToPeople" class="btn-text">← Back to People</button>
+        </div>
+
+        <div id="personDetail"></div>
+      </section>
+
+      <!-- Add/Edit Person Form -->
+      <section id="personFormView" class="view-section hidden">
+        <div class="back-nav">
+          <button id="backFromForm" class="btn-text">← Cancel</button>
+        </div>
+
+        <div class="form-container">
+          <h2 id="formTitle">Add New Person</h2>
+          <form id="personForm">
+            <div class="form-group">
+              <label for="personName">Name *</label>
+              <input type="text" id="personName" required placeholder="e.g., Taylor Swift">
+            </div>
+
+            <div class="form-group">
+              <label for="personNotes">Notes (optional)</label>
+              <textarea id="personNotes" rows="3" placeholder="e.g., Favorite artist, check for tour dates"></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" id="cancelFormBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">Save</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Discovery View (Phase 1) -->
+      <section id="discoverView" class="view-section hidden">
+        <h2>Discover Sources</h2>
+        <p class="instruction">Enter 2-4 people to discover their online sources</p>
+
+        <form id="peopleForm">
+          <div class="input-group">
+            <input type="text" id="person1" placeholder="Person 1" required>
+            <input type="text" id="person2" placeholder="Person 2" required>
+            <input type="text" id="person3" placeholder="Person 3 (optional)">
+            <input type="text" id="person4" placeholder="Person 4 (optional)">
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="saveToDb" checked>
+              Save to database
+            </label>
+          </div>
+
+          <button type="submit" id="discoverBtn" class="btn-primary">
+            Discover Sources
+          </button>
+        </form>
+
+        <div id="loading" class="loading hidden">
+          <div class="spinner"></div>
+          <p>Discovering sources...</p>
+        </div>
+
+        <section id="resultsSection" class="results-section hidden">
+          <h2>Discovered Sources</h2>
+          <div id="results"></div>
+        </section>
+      </section>
+    </main>
+
+    <!-- Confirmation Dialog -->
+    <div id="confirmDialog" class="modal hidden">
+      <div class="modal-content">
+        <h3 id="confirmTitle">Confirm Action</h3>
+        <p id="confirmMessage"></p>
+        <div class="modal-actions">
+          <button id="confirmCancel" class="btn-secondary">Cancel</button>
+          <button id="confirmOk" class="btn-danger">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
