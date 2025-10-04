@@ -477,12 +477,25 @@ input[type="text"]:focus {
   border: 1px solid #e0e0e0;
 }
 
-.source-list .source-item a {
+.source-info-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.source-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-list .source-item a,
+.source-link {
   flex: 1;
   color: #667eea;
   text-decoration: none;
   word-break: break-all;
-  margin-right: 10px;
 }
 
 .source-list .source-item a:hover {
@@ -513,7 +526,8 @@ input[type="text"]:focus {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 12px;
   border: 2px solid #e0e0e0;
@@ -521,10 +535,12 @@ input[type="text"]:focus {
   font-size: 1rem;
   font-family: inherit;
   transition: border-color 0.3s;
+  background: white;
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
   border-color: #667eea;
 }

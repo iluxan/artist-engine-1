@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const { discoverSourcesForPerson } = require('./sourceDiscovery');
+const { discoverSourcesWithAI } = require('./aiSourceDiscovery');
+const { analyzeAllSources } = require('./analyzePostingFrequency');
 const db = require('./db');
 
 const app = express();
@@ -84,7 +86,34 @@ app.delete('/api/people/:id', (req, res) => {
   }
 });
 
-// Run source discovery for a specific person
+// Run AI-powered source discovery for a specific person
+app.post('/api/people/:id/discover-ai', async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { personDescription } = req.body;
+
+  try {
+    const person = db.getPersonById(id);
+    if (!person) {
+      return res.status(404).json({ error: 'Person not found' });
+    }
+
+    // Use AI-powered discovery
+    const sources = await discoverSourcesWithAI(person.name, personDescription || person.notes || '');
+    const savedSources = db.bulkCreateSources(id, sources);
+
+    res.json({
+      person_id: id,
+      new_sources: savedSources,
+      total_sources: savedSources.length,
+      method: 'ai'
+    });
+  } catch (error) {
+    console.error('Error discovering sources with AI:', error);
+    res.status(500).json({ error: 'Failed to discover sources with AI: ' + error.message });
+  }
+});
+
+// Run source discovery for a specific person (legacy heuristic method)
 app.post('/api/people/:id/discover', async (req, res) => {
   const id = parseInt(req.params.id);
 
@@ -100,7 +129,8 @@ app.post('/api/people/:id/discover', async (req, res) => {
     res.json({
       person_id: id,
       new_sources: savedSources,
-      total_sources: savedSources.length
+      total_sources: savedSources.length,
+      method: 'heuristic'
     });
   } catch (error) {
     console.error('Error discovering sources:', error);
@@ -140,11 +170,18 @@ app.post('/api/sources', (req, res) => {
 
 // Update source
 app.put('/api/sources/:id', (req, res) => {
-  const { status, confidence } = req.body;
+  const { status, confidence, type, url, last_post_date, avg_posts_per_month } = req.body;
   const id = parseInt(req.params.id);
 
   try {
-    const source = db.updateSource(id, { status, confidence });
+    const source = db.updateSource(id, {
+      status,
+      confidence,
+      type,
+      url,
+      last_post_date,
+      avg_posts_per_month
+    });
     if (!source) {
       return res.status(404).json({ error: 'Source not found' });
     }
@@ -166,6 +203,40 @@ app.delete('/api/sources/:id', (req, res) => {
   } catch (error) {
     console.error('Error deleting source:', error);
     res.status(500).json({ error: 'Failed to delete source' });
+  }
+});
+
+// Analyze posting frequency for all sources of a person
+app.post('/api/people/:id/analyze-frequency', async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const person = db.getPersonById(id);
+    if (!person) {
+      return res.status(404).json({ error: 'Person not found' });
+    }
+
+    const sources = person.sources || [];
+    if (sources.length === 0) {
+      return res.json({ message: 'No sources to analyze', results: [] });
+    }
+
+    // Analyze all sources
+    const results = await analyzeAllSources(
+      id,
+      sources,
+      (sourceId, data) => db.updateSource(sourceId, data)
+    );
+
+    res.json({
+      person_id: id,
+      sources_analyzed: results.length,
+      results
+    });
+
+  } catch (error) {
+    console.error('Error analyzing posting frequency:', error);
+    res.status(500).json({ error: 'Failed to analyze posting frequency' });
   }
 });
 

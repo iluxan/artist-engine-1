@@ -1,15 +1,15 @@
-# Event Discovery Agent - Phase 2
+# Event Discovery Agent - Phase 3
 
 ## Overview
 A personal event discovery agent that helps you track events from people you care about (artists, writers, performers, etc.)
 
-## Current Status: Phase 2 Complete ✓
+## Current Status: Phase 3 (Steps 1-3) Complete ✓
 
 ### Features Implemented
 
 #### Phase 1 ✓
 - Input form to add 2-4 people to track
-- Automatic source discovery for:
+- Heuristic-based source discovery for:
   - Twitter/X profiles
   - Personal websites and blogs
   - Event platforms (Eventbrite, Dice, Songkick)
@@ -28,16 +28,44 @@ A personal event discovery agent that helps you track events from people you car
 - Data persistence across sessions
 - Navigation between different views (My People, Discover New)
 
+#### Phase 3 (Steps 1-3) ✓
+- **AI-Powered Source Discovery** using OpenAI GPT-4
+- Intelligent web search to find real, verified sources
+- URL verification (checks if sources are accessible)
+- Content analysis (verifies correct person and event announcements)
+- Confidence scoring (0-100%) based on AI analysis
+- New database columns for verification status and metadata
+- New API endpoint: `POST /api/people/:id/discover-ai`
+- Frontend "🤖 AI Discover" button
+- Test script for command-line testing
+- **Tested successfully with:** Neil Gaiman, Margaret Atwood, Roxane Gay
+
 ## Getting Started
 
 ### Prerequisites
 - Node.js (v14 or higher)
 - npm
+- **OpenAI API key** (for AI-powered source discovery)
 
 ### Installation
 ```bash
 npm install
 ```
+
+### Setup OpenAI API Key (Required for Phase 3)
+
+1. Get an API key from https://platform.openai.com/api-keys
+2. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+3. Add your API key to `.env`:
+   ```
+   OPENAI_API_KEY=sk-your-actual-key-here
+   OPENAI_MODEL=gpt-4o-mini
+   ```
+
+See `SETUP-PHASE3.md` for detailed setup instructions.
 
 ### Running the Application
 ```bash
@@ -46,22 +74,37 @@ npm start
 
 The application will be available at `http://localhost:3000`
 
+### Testing AI Discovery (Command Line)
+```bash
+# Test with default authors
+node test-ai-discovery.js
+
+# Test with specific person
+node test-ai-discovery.js "Neil Gaiman"
+```
+
 ## How to Use
 
-### Managing People (Phase 2)
-1. Open `http://localhost:3000` in your browser (opens to "My People" view)
+### AI-Powered Discovery (Phase 3 - Recommended)
+1. Open `http://localhost:3000` in your browser
 2. Click "Add Person" to add someone you want to track
-3. Enter their name and optional notes, then click "Save"
-4. Click "View" to see a person's details and sources
-5. Click "Discover" to find sources for a saved person
-6. Click "Edit" or "Delete" to manage saved people
+3. Enter their name and optional notes (e.g., "science fiction author")
+4. Click "🤖 AI Discover" to use AI-powered source discovery
+5. Wait 30-60 seconds for real, verified sources
+6. View discovered sources with confidence scores and analysis
 
-### Discovery Mode (Phase 1)
+### Managing People (Phase 2)
+1. View all saved people on the "My People" page
+2. Click "View" to see a person's details and all their sources
+3. Click "Edit" or "Delete" to manage saved people
+4. Sources are grouped by type (website, twitter, instagram, etc.)
+
+### Legacy Heuristic Discovery (Phase 1)
 1. Navigate to "Discover New" tab
 2. Enter 2-4 names of people you want to track
 3. Check "Save to database" if you want to save them
-4. Click "Discover Sources"
-5. View the discovered sources for each person
+4. Click "Discover Sources" (uses pattern matching, not AI)
+5. Note: These sources are generated heuristically and may not exist
 
 ## Project Structure
 ```

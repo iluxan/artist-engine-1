@@ -32,10 +32,32 @@ function initializeDatabase() {
       discovered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       last_checked DATETIME,
       status TEXT DEFAULT 'active',
+      verified BOOLEAN DEFAULT 0,
+      verification_date DATETIME,
+      last_content_check DATETIME,
+      metadata TEXT,
+      ai_confidence_score INTEGER,
+      ai_analysis_summary TEXT,
+      platform_id TEXT,
       FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE,
       UNIQUE(person_id, url)
     )
   `);
+
+  // Add new columns if they don't exist (for existing databases)
+  try {
+    db.exec(`ALTER TABLE sources ADD COLUMN last_post_date DATETIME`);
+    console.log('Added last_post_date column');
+  } catch (e) {
+    // Column already exists
+  }
+
+  try {
+    db.exec(`ALTER TABLE sources ADD COLUMN avg_posts_per_month REAL`);
+    console.log('Added avg_posts_per_month column');
+  } catch (e) {
+    // Column already exists
+  }
 
   // Create events table (for phase 3)
   db.exec(`
@@ -147,6 +169,22 @@ function updateSource(id, data) {
   if (data.last_checked !== undefined) {
     fields.push('last_checked = ?');
     values.push(data.last_checked);
+  }
+  if (data.type !== undefined) {
+    fields.push('type = ?');
+    values.push(data.type);
+  }
+  if (data.url !== undefined) {
+    fields.push('url = ?');
+    values.push(data.url);
+  }
+  if (data.last_post_date !== undefined) {
+    fields.push('last_post_date = ?');
+    values.push(data.last_post_date);
+  }
+  if (data.avg_posts_per_month !== undefined) {
+    fields.push('avg_posts_per_month = ?');
+    values.push(data.avg_posts_per_month);
   }
 
   if (fields.length === 0) {
