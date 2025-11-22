@@ -3,6 +3,7 @@ const path = require('path');
 const { discoverSourcesForPerson } = require('./sourceDiscovery');
 const { discoverSourcesWithAI } = require('./aiSourceDiscovery');
 const { analyzeAllSources } = require('./analyzePostingFrequency');
+const { extractEventsFromSource } = require('./extractEvents');
 const db = require('./db');
 
 const app = express();
@@ -240,44 +241,261 @@ app.post('/api/people/:id/analyze-frequency', async (req, res) => {
   }
 });
 
-// ==================== DISCOVERY ENDPOINT (Phase 1) ====================
+// Extract events from all sources of a person
+app.post('/api/people/:id/extract-events', async (req, res) => {
+  const id = parseInt(req.params.id);
 
-// Source discovery endpoint
-app.post('/api/discover-sources', async (req, res) => {
-  const { people, save_to_db } = req.body;
+  try {
+    const person = db.getPersonById(id);
+    if (!person) {
+      return res.status(404).json({ error: 'Person not found' });
+    }
 
-  if (!people || !Array.isArray(people) || people.length === 0) {
-    return res.status(400).json({ error: 'Please provide an array of people' });
+    const sources = person.sources || [];
+    if (sources.length === 0) {
+      return res.status(400).json({ error: 'No sources found. Discover sources first.' });
+    }
+
+    console.log(`\n🎯 Starting event extraction for: ${person.name}`);
+    console.log(`📚 Processing ${sources.length} source(s)...\n`);
+
+    let totalExtracted = 0;
+    let totalSaved = 0;
+    let totalFailed = 0;
+    let sourcesProcessed = 0;
+
+    // Process each source
+    for (const source of sources) {
+      console.log(`\n[${sourcesProcessed + 1}/${sources.length}] Processing: ${source.type} - ${source.url}`);
+
+      try {
+        const results = await extractEventsFromSource(
+          source.url,
+          source.type,
+          person.id,
+          source.id
+        );
+
+        totalExtracted += results.extracted || 0;
+        totalSaved += results.saved || 0;
+        totalFailed += results.failed || 0;
+        sourcesProcessed++;
+
+      } catch (error) {
+        console.error(`Error extracting from ${source.url}:`, error.message);
+        totalFailed++;
+      }
+
+      // Delay between sources to avoid rate limiting
+      if (sourcesProcessed < sources.length) {
+        console.log('⏳ Waiting 3 seconds before next source...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
+
+    console.log(`\n✅ Extraction complete!`);
+    console.log(`📊 Summary:`);
+    console.log(`   - Sources processed: ${sourcesProcessed}/${sources.length}`);
+    console.log(`   - Events extracted: ${totalExtracted}`);
+    console.log(`   - Events saved to review queue: ${totalSaved}`);
+    console.log(`   - Failed: ${totalFailed}\n`);
+
+    res.json({
+      success: true,
+      person_id: id,
+      person_name: person.name,
+      sources_processed: sourcesProcessed,
+      total_sources: sources.length,
+      events_extracted: totalExtracted,
+      events_saved: totalSaved,
+      events_failed: totalFailed,
+      unverified_events_count: totalSaved
+    });
+
+  } catch (error) {
+    console.error('Error extracting events:', error);
+    res.status(500).json({ error: 'Failed to extract events: ' + error.message });
   }
+});
 
-  if (people.length > 4) {
-    return res.status(400).json({ error: 'Maximum 4 people allowed' });
+// ==================== EVENTS ENDPOINTS ====================
+
+// Get all events
+app.get('/api/events', (req, res) => {
+  try {
+    const filters = {
+      person_id: req.query.person_id ? parseInt(req.query.person_id) : undefined,
+      status: req.query.status,
+      date_from: req.query.date_from,
+      date_to: req.query.date_to,
+      limit: req.query.limit ? parseInt(req.query.limit) : undefined,
+      include_all: req.query.include_all === 'true'
+    };
+
+    const events = db.getAllEvents(filters);
+    res.json({ events, total: events.length });
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+// Get event by ID
+app.get('/api/events/:id', (req, res) => {
+  try {
+    const event = db.getEventById(parseInt(req.params.id));
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res.json(event);
+  } catch (error) {
+    console.error('Error fetching event:', error);
+    res.status(500).json({ error: 'Failed to fetch event' });
+  }
+});
+
+// Get events for a person
+app.get('/api/people/:id/events', (req, res) => {
+  try {
+    const upcomingOnly = req.query.upcoming_only !== 'false';
+    const events = db.getEventsByPersonId(parseInt(req.params.id), upcomingOnly);
+    res.json({ events, total: events.length });
+  } catch (error) {
+    console.error('Error fetching person events:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+// Create new event
+app.post('/api/events', (req, res) => {
+  const { person_id, source_id, title, description, event_date, event_end_date,
+          location, venue, city, country, url, confidence, status } = req.body;
+
+  if (!person_id || !title) {
+    return res.status(400).json({ error: 'person_id and title are required' });
   }
 
   try {
-    const results = await Promise.all(
-      people.map(async (personName) => {
-        const sources = await discoverSourcesForPerson(personName);
-
-        let personId = null;
-        if (save_to_db) {
-          const person = db.createPerson(personName);
-          personId = person.id;
-          db.bulkCreateSources(person.id, sources);
-        }
-
-        return {
-          person: personName,
-          person_id: personId,
-          sources
-        };
-      })
-    );
-
-    res.json({ results });
+    const event = db.createEvent({
+      person_id,
+      source_id,
+      title,
+      description,
+      event_date,
+      event_end_date,
+      location,
+      venue,
+      city,
+      country,
+      url,
+      confidence,
+      status
+    });
+    res.status(201).json(event);
   } catch (error) {
-    console.error('Error discovering sources:', error);
-    res.status(500).json({ error: 'Failed to discover sources' });
+    console.error('Error creating event:', error);
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
+// Update event
+app.put('/api/events/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const event = db.updateEvent(id, req.body);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res.json(event);
+  } catch (error) {
+    console.error('Error updating event:', error);
+    res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
+// Delete event
+app.delete('/api/events/:id', (req, res) => {
+  try {
+    const success = db.deleteEvent(parseInt(req.params.id));
+    if (!success) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
+// ==================== UNVERIFIED EVENTS (REVIEW QUEUE) ====================
+
+// Get all unverified events
+app.get('/api/events/unverified', (req, res) => {
+  try {
+    const events = db.getAllUnverifiedEvents();
+    res.json({ events, total: events.length });
+  } catch (error) {
+    console.error('Error fetching unverified events:', error);
+    res.status(500).json({ error: 'Failed to fetch unverified events' });
+  }
+});
+
+// Get unverified event by ID
+app.get('/api/events/unverified/:id', (req, res) => {
+  try {
+    const event = db.getUnverifiedEventById(parseInt(req.params.id));
+    if (!event) {
+      return res.status(404).json({ error: 'Unverified event not found' });
+    }
+    res.json(event);
+  } catch (error) {
+    console.error('Error fetching unverified event:', error);
+    res.status(500).json({ error: 'Failed to fetch unverified event' });
+  }
+});
+
+// Approve unverified event (moves to events table)
+app.post('/api/events/unverified/:id/approve', (req, res) => {
+  try {
+    const event = db.approveEvent(parseInt(req.params.id));
+    res.json({
+      success: true,
+      event,
+      message: 'Event approved and will expire in 7 days'
+    });
+  } catch (error) {
+    console.error('Error approving event:', error);
+    res.status(500).json({ error: 'Failed to approve event: ' + error.message });
+  }
+});
+
+// Reject unverified event (delete)
+app.delete('/api/events/unverified/:id', (req, res) => {
+  try {
+    const success = db.deleteUnverifiedEvent(parseInt(req.params.id));
+    if (!success) {
+      return res.status(404).json({ error: 'Unverified event not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting unverified event:', error);
+    res.status(500).json({ error: 'Failed to delete unverified event' });
+  }
+});
+
+// Cleanup expired events
+app.post('/api/events/cleanup', (req, res) => {
+  try {
+    const deleted = db.deleteExpiredEvents();
+    res.json({
+      success: true,
+      deleted_count: deleted,
+      message: `Deleted ${deleted} expired event(s)`
+    });
+  } catch (error) {
+    console.error('Error cleaning up events:', error);
+    res.status(500).json({ error: 'Failed to cleanup events' });
   }
 });
 

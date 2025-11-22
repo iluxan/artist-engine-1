@@ -1,0 +1,1128 @@
+# EVENT DISCOVERY AGENT - PHASE 3 PLAN
+
+## STATUS: Steps 1-3 IMPLEMENTED ✓
+
+## Overview
+Phase 3 focuses on **intelligent source discovery** using OpenAI's GPT API to find real, verified sources where people publish their events. This replaces the heuristic-based URL generation from Phase 1/2 with actual web research and validation.
+
+## Implementation Progress
+
+### ✅ COMPLETED (Steps 1-3)
+- [x] Step 1: Database Setup (2-3 hours) - DONE
+  - Added new columns to sources table
+  - Columns: verified, verification_date, last_content_check, metadata, ai_confidence_score, ai_analysis_summary, platform_id
+
+- [x] Step 2: Basic AI Discovery (4-5 hours) - DONE
+  - Created aiSourceDiscovery.js module
+  - Integrated OpenAI SDK (gpt-4o-mini)
+  - Implemented GPT-4 discovery prompts
+  - Parse JSON responses from GPT
+  - Error handling and rate limiting
+
+- [x] Step 3: URL Verification (3-4 hours) - DONE
+  - HTTP verification with axios
+  - Handle redirects and errors
+  - Extract page content with cheerio
+  - Store verification results
+
+- [x] Step 4: Content Analysis (5-6 hours) - DONE
+  - Fetch and parse webpage content
+  - GPT-4 content analysis
+  - Calculate confidence scores (0-100%)
+  - Store analysis summaries
+
+- [x] Step 5: API Integration (3-4 hours) - DONE
+  - New endpoint: POST /api/people/:id/discover-ai
+  - Integrated with existing database functions
+  - Error handling and detailed responses
+
+- [x] Step 6: Frontend Updates (4-5 hours) - DONE
+  - Added "🤖 AI Discover" button to person cards
+  - Loading states and progress messages
+  - Display confidence scores
+  - Keep legacy "Discover" as fallback
+
+- [x] Step 7: Testing (2-3 hours) - DONE
+  - Created test-ai-discovery.js script
+  - Tested with Neil Gaiman ✓ (5 sources, 90% best confidence, 21.8s)
+  - Tested with Margaret Atwood ✓ (5 sources, 95% best confidence, 25.1s)
+  - Tested with Roxane Gay ✓ (4 sources, 90% best confidence, 30.3s)
+  - All tests successful!
+
+### 🚧 NOT YET IMPLEMENTED
+- [ ] Step 8: Optimization (3-4 hours)
+  - Response caching
+  - Batch processing
+  - Cost tracking dashboard
+  - Advanced rate limiting
+
+### Goals
+1. ✅ Integrate OpenAI API for intelligent web search and analysis
+2. ✅ Discover real, verified sources for each person
+3. ✅ Validate that sources actually exist and contain event information
+4. ✅ Store source metadata (last checked, verification status)
+5. ✅ Provide confidence scoring based on actual content analysis
+
+## Core Feature: AI-Powered Source Discovery
+
+### The Problem with Current Implementation
+Currently, `sourceDiscovery.js` generates URLs using patterns like:
+- `https://twitter.com/johnsmith` (guessed handle)
+- `https://www.johnsmith.com` (guessed domain)
+- Generic event platform URLs
+
+**Issues:**
+- Most generated URLs don't exist
+- No verification of actual content
+- Low accuracy and usefulness
+- Wastes user time checking invalid sources
+
+### The Solution: GPT-Powered Web Research
+
+Use OpenAI API to:
+1. Search for the person across the web
+2. Identify official accounts and profiles
+3. Verify sources actually exist
+4. Analyze content to confirm it's event-related
+5. Extract additional metadata (follower counts, last post date, etc.)
+
+## Architecture
+
+### New Dependencies
+```json
+{
+  "openai": "^4.0.0",
+  "dotenv": "^16.0.0"
+}
+```
+
+### Environment Variables (.env)
+```
+OPENAI_API_KEY=sk-...
+```
+
+### New Module: aiSourceDiscovery.js
+
+```javascript
+// Core functions:
+- discoverSourcesWithAI(personName, personDescription)
+- verifySourceExists(url)
+- analyzeSourceContent(url, personName)
+- extractSourceMetadata(url)
+```
+
+## Implementation Strategy
+
+### Multi-Step Discovery Process
+
+#### Step 1: Initial Web Search (GPT-4)
+Prompt GPT to search for:
+- Official website
+- Social media accounts (Twitter, Mastodon, Instagram)
+- IGNORE THESE - Event platform profiles (Eventbrite, Songkick, Bandsintown, Dice)
+- publishers with event announcements
+
+**Approach:** Use GPT-4 with web browsing capability OR use GPT-4 to generate search queries, then use a search API (Google Custom Search, Bing Search, Brave Search)
+
+#### Step 2: URL Verification
+For each discovered URL:
+1. Check if URL is accessible (HTTP request)
+2. Verify domain exists and responds
+3. Check for rate limits or blocks
+4. Store HTTP status and headers
+
+#### Step 3: Content Analysis (GPT-4 Text)
+For verified URLs:
+1. Fetch page content (HTML)
+2. Extract text and relevant metadata
+3. Use GPT-4 to analyze:
+   - Is this the correct person?
+   - Does this source post event information?
+   - What types of events? (concerts, talks, book signings, etc.)
+   - How frequently are events posted?
+   - Last event announcement date
+4. Page back several pages, try to find an actual event or two
+
+#### Step 4: Confidence Scoring
+Based on analysis, assign confidence:
+- **High (90-100%)**: Official website with events calendar, verified social account
+- **Medium (60-89%)**: Social media account, event platform profile with activity
+- **Low (30-59%)**: Unverified or indirect sources
+- **Very Low (<30%)**: Suspicious or likely incorrect
+
+#### Step 5: Metadata Extraction
+Store additional data:
+- Source type (website, twitter, instagram, etc.)
+- Follower/subscriber count
+- Last post/update date
+- Event posting frequency
+- Platform-specific IDs (Twitter handle, Instagram username, etc.)
+
+## API Endpoints
+
+### New/Modified Endpoints
+
+```
+POST /api/people/:id/discover-ai
+- Trigger AI-powered source discovery
+- Body: { personDescription?: string }
+- Returns: { sources: [...], analysis: {...} }
+
+GET /api/sources/:id/verify
+- Re-verify and analyze an existing source
+- Returns: { verified: boolean, analysis: {...} }
+
+POST /api/sources/:id/refresh-metadata
+- Update source metadata (follower count, last post, etc.)
+- Returns: { metadata: {...} }
+```
+
+## Database Schema Updates
+
+### ALTER sources table
+Add new columns:
+```sql
+- verified (BOOLEAN DEFAULT false)
+- verification_date (DATETIME)
+- last_content_check (DATETIME)
+- metadata (TEXT) -- JSON: follower count, last post date, etc.
+- ai_confidence_score (INTEGER 0-100)
+- ai_analysis_summary (TEXT)
+- platform_id (TEXT) -- Twitter handle, Instagram username, etc.
+```
+
+## OpenAI API Integration
+
+### Configuration
+```javascript
+const OpenAI = require('openai');
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+```
+
+### Search Strategy
+
+#### Option 1: GPT-4 with Function Calling + Web Search API
+1. Use GPT-4 to generate targeted search queries
+2. Execute searches via Google Custom Search API or Brave Search API
+3. GPT-4 analyzes search results and extracts relevant URLs
+4. Verify and analyze each URL
+
+#### Option 2: GPT-4 with Web Browsing (if available)
+1. Use GPT-4 with browsing capability
+2. Direct GPT to search for the person and find official sources
+3. GPT returns structured JSON with discovered sources
+
+#### Option 3: Hybrid Approach (Recommended)
+1. Use web search API for initial discovery
+2. Use GPT-4 to analyze and verify results
+3. Use GPT-4 Vision for screenshot analysis if needed
+4. Fall back to traditional scraping for structured data
+
+### Prompt Engineering
+
+**Discovery Prompt Template:**
+```
+You are helping discover official event sources for {personName}.
+{personDescription}
+
+Find the following information:
+1. Official website (with events page if available)
+2. Twitter/X account (verified if possible)
+3. Instagram account
+4. Facebook page
+5. Event platform profiles (Eventbrite, Songkick, Bandsintown, Dice, etc.)
+6. YouTube channel
+7. Any other official sources where they announce events
+
+For each source:
+- Provide the exact URL
+- Explain why you believe this is the correct person
+- Note if the account is verified
+- Indicate if events are posted there
+
+Return results as JSON:
+{
+  "sources": [
+    {
+      "type": "twitter",
+      "url": "https://twitter.com/...",
+      "verified": true,
+      "confidence": "high",
+      "reasoning": "Verified account with 1M followers, regularly posts tour dates"
+    }
+  ]
+}
+```
+
+**Verification Prompt Template:**
+```
+Analyze this webpage content for {personName}:
+URL: {url}
+
+Content: {pageContent}
+
+Questions:
+1. Is this page about the correct person?
+2. Does this source post event announcements?
+3. What types of events are posted? (concerts, talks, appearances, etc.)
+4. How often are events posted?
+5. When was the last event announcement?
+
+Provide confidence score (0-100) and reasoning.
+```
+
+## Implementation Steps
+
+### Step 1: Setup (2-3 hours)
+1. Install OpenAI SDK and dotenv
+2. Create .env file with API key (add to .gitignore)
+3. Set up OpenAI client configuration
+4. Update database schema with new columns
+5. Create aiSourceDiscovery.js module
+
+### Step 2: Basic AI Discovery (4-5 hours)
+1. Implement basic GPT-4 discovery function
+2. Create prompts for source discovery
+3. Parse GPT responses (JSON format)
+4. Handle errors and rate limits
+5. Test with sample persons
+
+### Step 3: URL Verification (3-4 hours)
+1. Implement HTTP verification
+2. Handle redirects and errors
+3. Check robots.txt compliance
+4. Store verification results
+5. Add retry logic
+
+### Step 4: Content Analysis (5-6 hours)
+1. Fetch and parse webpage content
+2. Extract relevant text/metadata
+3. Use GPT-4 for content analysis
+4. Calculate confidence scores
+5. Store analysis results
+
+### Step 5: API Integration (3-4 hours)
+1. Create new API endpoint for AI discovery
+2. Update existing discover endpoint
+3. Add verification endpoint
+4. Add metadata refresh endpoint
+5. Test API responses
+
+### Step 6: Frontend Updates (4-5 hours)
+1. Update "Discover" button to use AI discovery
+2. Show discovery progress (loading states)
+3. Display confidence scores and reasoning
+4. Show verification status badges
+5. Add "Refresh" option for sources
+
+### Step 7: Optimization (3-4 hours)
+1. Implement caching for API responses
+2. Add rate limiting for OpenAI calls
+3. Batch processing for multiple people
+4. Cost tracking and limits
+5. Error handling and fallbacks
+
+### Step 8: Testing & Polish (2-3 hours)
+1. Test with various person types (musicians, authors, speakers)
+2. Verify accuracy of discovered sources
+3. Test edge cases (common names, international)
+4. Add logging and monitoring
+5. Update documentation
+
+## Cost Considerations
+
+### OpenAI API Pricing (as of 2024)
+- GPT-4: ~$0.03 per 1K tokens (input), ~$0.06 per 1K tokens (output)
+- Typical discovery: ~2K input tokens + 1K output tokens = ~$0.09 per person
+- 100 discoveries = ~$9
+- 1000 discoveries = ~$90
+
+### Cost Optimization Strategies
+1. Cache discovery results (don't re-discover same person)
+2. Use GPT-3.5-turbo for verification (cheaper)
+3. Batch analyze multiple URLs in single request
+4. Set daily/monthly API spending limits
+5. Offer "Fast" (AI) vs "Basic" (heuristic) discovery options
+
+### Budget Recommendations
+- Development/Testing: $10-20/month
+- Light use (100 users, 10 discoveries each): $90/month
+- Medium use (1000 users, 10 discoveries each): $900/month
+- Consider usage limits per user (e.g., 10 discoveries per day)
+
+## Alternative: Web Search API Integration
+
+If OpenAI costs are too high, consider:
+
+### Option A: Brave Search API
+- Free tier: 2,000 queries/month
+- Paid: $3 per 1,000 queries
+- Returns search results, then use cheaper GPT-3.5 for analysis
+
+### Option B: Google Custom Search API
+- Free tier: 100 queries/day
+- Paid: $5 per 1,000 queries
+- More accurate search results
+
+### Option C: SerpAPI
+- $50/month for 5,000 searches
+- Includes Google, Bing, Yahoo, etc.
+- Easy integration
+
+### Hybrid Strategy
+1. Use search API to find candidate URLs ($0.003-0.005 per search)
+2. Use GPT-3.5-turbo to analyze results ($0.002 per analysis)
+3. Total cost: ~$0.01 per discovery (10x cheaper than GPT-4 only)
+
+## Security Considerations
+
+### API Key Management
+- Store OpenAI API key in .env (never commit)
+- Use environment variables in production
+- Rotate keys regularly
+- Monitor usage and set spending limits
+
+### Rate Limiting
+- Limit discoveries per user per day
+- Queue requests during high traffic
+- Implement exponential backoff for retries
+
+### Content Safety
+- Filter out inappropriate content
+- Validate URLs before visiting
+- Sanitize all user inputs
+- Handle malicious websites gracefully
+
+## Success Criteria
+- [ ] AI-powered discovery finds 80%+ accurate sources
+- [ ] At least 3 verified sources per person on average
+- [ ] Verification process completes in <30 seconds
+- [ ] Confidence scores correlate with actual accuracy
+- [ ] API costs stay under budget limits
+- [ ] User can understand why each source was selected
+- [ ] System handles rate limits and errors gracefully
+
+## EVENT EXTRACTION & VIEWING (Phase 3.5)
+
+### STATUS: NOT YET IMPLEMENTED
+
+### Overview
+Now that we have AI-powered source discovery working, we need to actually extract events from those sources and provide a way to view/browse them. The `extractEvents.js` module already exists and works - we just need to integrate it into the app with API endpoints, scheduling, and a frontend UI.
+
+### Goals
+1. Extract events from discovered sources (book signings, talks, appearances, etc.)
+2. Manual trigger via UI ("Extract Events" button)
+3. Automatic overnight extraction via scheduler
+4. Browse/view all events in a dedicated "Events" page
+5. Filter and sort events by date, person, etc.
+
+### Implementation Steps
+
+#### Step 1: Database Integration (1-2 hours)
+
+Add event CRUD functions to `db.js`:
+
+```javascript
+// Events queries
+function createEvent(eventData) {
+  const stmt = db.prepare(`
+    INSERT INTO events (person_id, source_id, title, date, location, url, discovered_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  return stmt.run(
+    eventData.person_id,
+    eventData.source_id,
+    eventData.title,
+    eventData.date,
+    eventData.location,
+    eventData.url,
+    eventData.discovered_at || new Date().toISOString()
+  );
+}
+
+function getAllEvents(options = {}) {
+  // Options: upcoming, past, personId, limit, offset
+  let query = `
+    SELECT e.*, p.name as person_name, s.url as source_url, s.type as source_type
+    FROM events e
+    JOIN people p ON e.person_id = p.id
+    LEFT JOIN sources s ON e.source_id = s.id
+    WHERE 1=1
+  `;
+
+  const params = [];
+
+  if (options.upcoming) {
+    query += ` AND e.date >= ?`;
+    params.push(new Date().toISOString());
+  }
+
+  if (options.past) {
+    query += ` AND e.date < ?`;
+    params.push(new Date().toISOString());
+  }
+
+  if (options.personId) {
+    query += ` AND e.person_id = ?`;
+    params.push(options.personId);
+  }
+
+  query += ` ORDER BY e.date ${options.sortOrder || 'ASC'}`;
+
+  if (options.limit) {
+    query += ` LIMIT ?`;
+    params.push(options.limit);
+  }
+
+  return db.prepare(query).all(...params);
+}
+
+function getEventsByPersonId(personId) {
+  return db.prepare(`
+    SELECT e.*, s.url as source_url, s.type as source_type
+    FROM events e
+    LEFT JOIN sources s ON e.source_id = s.id
+    WHERE e.person_id = ?
+    ORDER BY e.date ASC
+  `).all(personId);
+}
+
+function getUpcomingEvents(daysAhead = 30) {
+  const today = new Date();
+  const future = new Date();
+  future.setDate(today.getDate() + daysAhead);
+
+  return db.prepare(`
+    SELECT e.*, p.name as person_name, s.url as source_url
+    FROM events e
+    JOIN people p ON e.person_id = p.id
+    LEFT JOIN sources s ON e.source_id = s.id
+    WHERE e.date BETWEEN ? AND ?
+    ORDER BY e.date ASC
+  `).all(today.toISOString(), future.toISOString());
+}
+
+function deleteEvent(id) {
+  return db.prepare('DELETE FROM events WHERE id = ?').run(id);
+}
+
+function eventExists(personId, title, date) {
+  // Check for duplicate events
+  return db.prepare(`
+    SELECT id FROM events
+    WHERE person_id = ? AND title = ? AND date = ?
+  `).get(personId, title, date);
+}
+```
+
+**Export all new functions at bottom of db.js**
+
+#### Step 2: Event Extraction API (2-3 hours)
+
+Add to `server.js`:
+
+```javascript
+const { extractEventsFromSource } = require('./extractEvents');
+
+// Extract events for a person (manual trigger)
+app.post('/api/people/:id/extract-events', async (req, res) => {
+  try {
+    const personId = parseInt(req.params.id);
+    const person = db.getPersonById(personId);
+
+    if (!person) {
+      return res.status(404).json({ error: 'Person not found' });
+    }
+
+    const sources = person.sources || [];
+    if (sources.length === 0) {
+      return res.status(400).json({ error: 'No sources found. Discover sources first.' });
+    }
+
+    const allEvents = [];
+    let sourcesProcessed = 0;
+
+    // Extract from each source
+    for (const source of sources) {
+      try {
+        const events = await extractEventsFromSource(
+          source.url,
+          source.type,
+          personId,
+          source.id
+        );
+
+        // Save events to database (avoid duplicates)
+        for (const event of events) {
+          const exists = db.eventExists(event.person_id, event.title, event.date);
+          if (!exists) {
+            db.createEvent(event);
+            allEvents.push(event);
+          }
+        }
+
+        sourcesProcessed++;
+      } catch (error) {
+        console.error(`Error extracting from ${source.url}:`, error);
+      }
+    }
+
+    res.json({
+      success: true,
+      person_name: person.name,
+      sources_processed: sourcesProcessed,
+      total_sources: sources.length,
+      events_found: allEvents.length,
+      events: allEvents
+    });
+
+  } catch (error) {
+    console.error('Error extracting events:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all events
+app.get('/api/events', (req, res) => {
+  try {
+    const options = {
+      upcoming: req.query.upcoming === 'true',
+      past: req.query.past === 'true',
+      personId: req.query.personId ? parseInt(req.query.personId) : null,
+      limit: req.query.limit ? parseInt(req.query.limit) : null,
+      sortOrder: req.query.sortOrder || 'ASC'
+    };
+
+    const events = db.getAllEvents(options);
+    res.json({ events });
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get events for a specific person
+app.get('/api/people/:id/events', (req, res) => {
+  try {
+    const personId = parseInt(req.params.id);
+    const events = db.getEventsByPersonId(personId);
+    res.json({ events });
+  } catch (error) {
+    console.error('Error fetching person events:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete an event
+app.delete('/api/events/:id', (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id);
+    db.deleteEvent(eventId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+#### Step 3: Scheduled Extraction (2-3 hours)
+
+**Install dependency:**
+```bash
+npm install node-cron
+```
+
+**Create `scheduler.js`:**
+
+```javascript
+const cron = require('node-cron');
+const db = require('./db');
+const { extractEventsFromSource } = require('./extractEvents');
+
+// Schedule event extraction to run every night at 2 AM
+function startScheduler() {
+  console.log('📅 Event extraction scheduler started');
+
+  // Run daily at 2:00 AM
+  cron.schedule('0 2 * * *', async () => {
+    console.log('\n🌙 Running scheduled event extraction...');
+    await extractEventsForAllPeople();
+  });
+
+  // Optional: Run weekly for less active sources (every Sunday at 3 AM)
+  cron.schedule('0 3 * * 0', async () => {
+    console.log('\n📅 Running weekly event extraction for less active sources...');
+    await extractEventsWeekly();
+  });
+}
+
+async function extractEventsForAllPeople() {
+  try {
+    const people = db.getAllPeople();
+
+    for (const person of people) {
+      console.log(`\n👤 Extracting events for: ${person.name}`);
+
+      const personData = db.getPersonById(person.id);
+      const sources = personData.sources || [];
+
+      // Only extract from sources that post frequently
+      const activeSources = sources.filter(s =>
+        s.avg_posts_per_month && s.avg_posts_per_month > 1
+      );
+
+      for (const source of activeSources) {
+        try {
+          const events = await extractEventsFromSource(
+            source.url,
+            source.type,
+            person.id,
+            source.id
+          );
+
+          // Save new events
+          for (const event of events) {
+            const exists = db.eventExists(event.person_id, event.title, event.date);
+            if (!exists) {
+              db.createEvent(event);
+              console.log(`  ✅ Saved: ${event.title}`);
+            }
+          }
+
+          // Delay between sources
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        } catch (error) {
+          console.error(`  ❌ Error with ${source.url}:`, error.message);
+        }
+      }
+    }
+
+    console.log('\n✅ Scheduled extraction complete');
+  } catch (error) {
+    console.error('❌ Scheduled extraction failed:', error);
+  }
+}
+
+async function extractEventsWeekly() {
+  // Similar to daily but for less active sources
+  const people = db.getAllPeople();
+
+  for (const person of people) {
+    const personData = db.getPersonById(person.id);
+    const sources = personData.sources || [];
+
+    // Extract from infrequent posters
+    const inactiveSources = sources.filter(s =>
+      !s.avg_posts_per_month || s.avg_posts_per_month <= 1
+    );
+
+    // ... similar extraction logic
+  }
+}
+
+module.exports = { startScheduler, extractEventsForAllPeople };
+```
+
+**Update `server.js` to start scheduler:**
+
+```javascript
+const { startScheduler } = require('./scheduler');
+
+// At bottom of server.js, before app.listen:
+startScheduler();
+```
+
+#### Step 4: Frontend Events Page (4-5 hours)
+
+**Add to `public/index.html` navigation:**
+
+```html
+<nav>
+  <a href="#" class="nav-link" data-page="people">People</a>
+  <a href="#" class="nav-link" data-page="events">Events</a>
+  <a href="#" class="nav-link" data-page="discover">Discover</a>
+</nav>
+```
+
+**Add new view section:**
+
+```html
+<div id="eventsView" class="view-section hidden">
+  <div class="view-header">
+    <h1>Events</h1>
+    <div class="filter-controls">
+      <button id="filterUpcoming" class="btn-secondary active">Upcoming</button>
+      <button id="filterPast" class="btn-secondary">Past</button>
+      <button id="filterAll" class="btn-secondary">All</button>
+    </div>
+  </div>
+
+  <div id="eventsList"></div>
+
+  <div id="eventsEmpty" class="empty-state hidden">
+    <p>No events found yet.</p>
+    <p>Extract events from your people's sources to see them here.</p>
+  </div>
+</div>
+```
+
+**Add to `public/app.js`:**
+
+```javascript
+// Update view map
+const viewMap = {
+  'people': 'peopleView',
+  'events': 'eventsView',
+  'discover': 'discoverView',
+  'personDetail': 'personDetailView',
+  'personForm': 'personFormView'
+};
+
+// Events view functions
+async function loadEvents(filter = 'upcoming') {
+  const eventsList = document.getElementById('eventsList');
+  const eventsEmpty = document.getElementById('eventsEmpty');
+
+  eventsList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading events...</p></div>';
+
+  try {
+    const params = new URLSearchParams();
+    if (filter === 'upcoming') params.append('upcoming', 'true');
+    if (filter === 'past') params.append('past', 'true');
+
+    const response = await fetch(`/api/events?${params}`);
+    const data = await response.json();
+
+    if (data.events.length === 0) {
+      eventsList.innerHTML = '';
+      eventsEmpty.classList.remove('hidden');
+      return;
+    }
+
+    eventsEmpty.classList.add('hidden');
+    displayEvents(data.events);
+
+  } catch (error) {
+    console.error('Error loading events:', error);
+    eventsList.innerHTML = '<p class="error">Failed to load events</p>';
+  }
+}
+
+function displayEvents(events) {
+  const eventsList = document.getElementById('eventsList');
+  eventsList.innerHTML = '';
+
+  events.forEach(event => {
+    const card = createEventCard(event);
+    eventsList.appendChild(card);
+  });
+}
+
+function createEventCard(event) {
+  const card = document.createElement('div');
+  card.className = 'event-card';
+
+  const eventDate = event.date ? new Date(event.date).toLocaleDateString() : 'Date TBD';
+  const isUpcoming = event.date && new Date(event.date) > new Date();
+
+  card.innerHTML = `
+    <div class="event-header">
+      <h3>${event.title}</h3>
+      <span class="event-badge ${isUpcoming ? 'upcoming' : 'past'}">
+        ${isUpcoming ? 'Upcoming' : 'Past'}
+      </span>
+    </div>
+    <div class="event-details">
+      <div class="event-meta">
+        <span>📅 ${eventDate}</span>
+        ${event.location ? `<span>📍 ${event.location}</span>` : ''}
+      </div>
+      <div class="event-person">
+        <a href="#" onclick="viewPerson(${event.person_id}); return false;">
+          ${event.person_name}
+        </a>
+      </div>
+      ${event.url ? `<a href="${event.url}" target="_blank" class="event-link">Event Details →</a>` : ''}
+    </div>
+  `;
+
+  return card;
+}
+
+// Navigation handler
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const page = e.target.dataset.page;
+    if (page === 'events') {
+      showView('events');
+      loadEvents('upcoming');
+    }
+    // ... existing handlers
+  });
+});
+
+// Filter buttons
+document.getElementById('filterUpcoming').addEventListener('click', () => {
+  updateFilterButtons('upcoming');
+  loadEvents('upcoming');
+});
+
+document.getElementById('filterPast').addEventListener('click', () => {
+  updateFilterButtons('past');
+  loadEvents('past');
+});
+
+document.getElementById('filterAll').addEventListener('click', () => {
+  updateFilterButtons('all');
+  loadEvents('all');
+});
+
+function updateFilterButtons(activeFilter) {
+  document.querySelectorAll('.filter-controls button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.getElementById(`filter${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}`).classList.add('active');
+}
+```
+
+**Add "Extract Events" button to Person Detail:**
+
+In `displayPersonDetail()` function:
+
+```javascript
+<div class="person-detail-actions">
+  <button id="editPersonBtn" class="btn-secondary">Edit</button>
+  <button id="discoverPersonBtn" class="btn-primary">Discover Sources</button>
+  <button id="extractEventsBtn" class="btn-primary">🎭 Extract Events</button>
+</div>
+```
+
+Add handler:
+
+```javascript
+document.getElementById('extractEventsBtn').addEventListener('click', () => {
+  extractEventsForPerson(person.id);
+});
+
+async function extractEventsForPerson(personId) {
+  if (!confirm('This will analyze all sources for events using AI. It may take 1-2 minutes. Continue?')) {
+    return;
+  }
+
+  const detailDiv = document.getElementById('personDetail');
+  const originalContent = detailDiv.innerHTML;
+
+  try {
+    detailDiv.innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>🎭 Extracting events from sources...</p>
+        <p style="color: #666;">This may take 1-2 minutes</p>
+      </div>
+    `;
+
+    const response = await fetch(`/api/people/${personId}/extract-events`, {
+      method: 'POST'
+    });
+
+    if (!response.ok) throw new Error('Failed to extract events');
+
+    const data = await response.json();
+
+    alert(`✅ Found ${data.events_found} event(s) from ${data.sources_processed} source(s)!`);
+    viewPerson(personId);
+
+  } catch (error) {
+    console.error('Error extracting events:', error);
+    detailDiv.innerHTML = originalContent;
+    alert('Failed to extract events: ' + error.message);
+  }
+}
+```
+
+**Add CSS for event cards in `public/styles.css`:**
+
+```css
+.event-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 15px;
+}
+
+.event-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.event-badge.upcoming {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.event-badge.past {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+.event-meta {
+  display: flex;
+  gap: 20px;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.event-person {
+  margin-bottom: 10px;
+}
+
+.event-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-controls button.active {
+  background: #667eea;
+  color: white;
+}
+```
+
+#### Step 5: Testing & Validation (2-3 hours)
+
+**Manual Testing:**
+1. Add a person with sources
+2. Click "Extract Events" button
+3. Verify events appear in database
+4. Navigate to Events page
+5. Test filters (Upcoming/Past/All)
+6. Click on person name to navigate to detail
+7. Verify no duplicate events created
+
+**Scheduled Testing:**
+1. Temporarily change cron schedule to run in 2 minutes
+2. Verify scheduler runs and extracts events
+3. Check logs for errors
+4. Verify events saved to database
+5. Reset cron schedule to 2 AM
+
+**Edge Cases:**
+- Person with no sources
+- Source with no events found
+- Malformed event data
+- API rate limiting
+- Duplicate event detection
+
+### Dependencies
+```json
+{
+  "node-cron": "^3.0.0"
+}
+```
+
+### Database Schema
+No changes needed - `events` table already exists with correct schema.
+
+### Cost Considerations
+- Event extraction: ~$0.02-0.05 per source analyzed (GPT-4o-mini)
+- Daily scheduled run for 10 people with 5 sources each = ~$2.50/day
+- Optimize by only checking active sources (avg_posts_per_month > 1)
+- Consider using cached results for sources checked within last 24 hours
+
+### Success Criteria
+- [x] Events table has CRUD functions in db.js
+- [x] Manual extraction works via UI button
+- [x] Scheduled extraction runs overnight
+- [x] Events page displays all events with filters
+- [x] No duplicate events created
+- [x] Integration with existing extractEvents.js works
+- [x] Cost stays under $5/day for typical usage
+
+### Timeline
+- Database Integration: 1-2 hours
+- API Endpoints: 2-3 hours
+- Scheduled Extraction: 2-3 hours
+- Frontend Events Page: 4-5 hours
+- Testing & Validation: 2-3 hours
+
+**Total: 11-16 hours**
+
+## Future Enhancements (Phase 4)
+- Automatic re-verification on schedule
+- Learn from user feedback (mark sources as incorrect)
+- Discover new platforms automatically
+- Multi-language support for international artists
+- Integration with social media APIs (Twitter, Instagram official APIs)
+- Calendar view for events (interactive calendar UI)
+- Email/push notifications for upcoming events
+- Export events to iCal/Google Calendar
+- Event reminder system
+
+## Testing Plan
+
+### Unit Tests
+- OpenAI API integration
+- URL verification logic
+- Content parsing
+- Confidence scoring algorithm
+
+### Integration Tests
+- Full discovery workflow
+- Database updates
+- API endpoints
+- Error handling
+
+### Manual Testing Scenarios
+1. Discover sources for well-known musician (e.g., Taylor Swift)
+2. Discover sources for obscure local artist
+3. Test with author names
+4. Test with common names (e.g., "John Smith")
+5. Test with international characters
+6. Test error cases (invalid names, API failures)
+
+### Acceptance Testing
+- Compare AI-discovered sources vs manual research
+- Measure accuracy, precision, recall
+- Get user feedback on source quality
+- Verify cost per discovery stays within budget
+
+## Timeline
+- Setup: 2-3 hours
+- Basic AI Discovery: 4-5 hours
+- URL Verification: 3-4 hours
+- Content Analysis: 5-6 hours
+- API Integration: 3-4 hours
+- Frontend Updates: 4-5 hours
+- Optimization: 3-4 hours
+- Testing & Polish: 2-3 hours
+
+**Total: 26-34 hours** (3-4 full days of work)
+
+## Notes
+- Start with GPT-4 for accuracy, optimize to GPT-3.5-turbo later
+- Consider offering both "AI Discovery" (paid feature) and "Basic Discovery" (free, heuristic)
+- Monitor token usage closely during development
+- Build cost tracking dashboard for admin
+- Consider using LangChain for easier OpenAI integration
+- Store all API responses for debugging and improvement

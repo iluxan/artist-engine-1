@@ -1,7 +1,9 @@
 // ==================== STATE & ROUTING ====================
-let currentView = 'people';
+let currentView = 'events';
 let currentPersonId = null;
 let editingPersonId = null;
+let editingEventId = null;
+let peopleCache = [];
 
 function showView(viewName) {
   document.querySelectorAll('.view-section').forEach(section => {
@@ -9,8 +11,9 @@ function showView(viewName) {
   });
 
   const viewMap = {
+    'events': 'eventsView',
+    'eventForm': 'eventFormView',
     'people': 'peopleView',
-    'discover': 'discoverView',
     'personDetail': 'personDetailView',
     'personForm': 'personFormView'
   };
@@ -35,11 +38,12 @@ document.querySelectorAll('.nav-link').forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
     const page = e.target.dataset.page;
-    if (page === 'people') {
+    if (page === 'events') {
+      showView('events');
+      loadEvents();
+    } else if (page === 'people') {
       showView('people');
       loadPeople();
-    } else if (page === 'discover') {
-      showView('discover');
     }
   });
 });
@@ -58,6 +62,312 @@ document.getElementById('cancelFormBtn').addEventListener('click', () => {
   showView('people');
   loadPeople();
 });
+
+document.getElementById('backFromEventForm').addEventListener('click', () => {
+  showView('events');
+  loadEvents();
+});
+
+document.getElementById('cancelEventFormBtn').addEventListener('click', () => {
+  showView('events');
+  loadEvents();
+});
+
+// ==================== EVENTS VIEW ====================
+async function loadEvents() {
+  const eventsList = document.getElementById('eventsList');
+  const emptyState = document.getElementById('eventsEmptyState');
+
+  eventsList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading events...</p></div>';
+  emptyState.classList.add('hidden');
+
+  try {
+    const personFilter = document.getElementById('personFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+
+    let url = '/api/events?';
+    if (personFilter) url += `person_id=${personFilter}&`;
+    if (statusFilter && statusFilter !== 'all') {
+      url += `status=${statusFilter}`;
+    } else if (statusFilter === 'all') {
+      url += 'include_all=true';
+    }
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.events.length === 0) {
+      eventsList.innerHTML = '';
+      emptyState.classList.remove('hidden');
+
+      // Wire up empty state button
+      setTimeout(() => {
+        const goButton = document.getElementById('goToPeopleFromEvents');
+        if (goButton) {
+          goButton.addEventListener('click', () => {
+            showView('people');
+            loadPeople();
+          });
+        }
+      }, 0);
+
+      return;
+    }
+
+    eventsList.innerHTML = '';
+    data.events.forEach(event => {
+      const card = createEventCard(event);
+      eventsList.appendChild(card);
+    });
+
+  } catch (error) {
+    console.error('Error loading events:', error);
+    eventsList.innerHTML = '<p class="error">Failed to load events</p>';
+  }
+}
+
+function createEventCard(event) {
+  const card = document.createElement('div');
+  card.className = 'event-card';
+
+  const header = document.createElement('div');
+  header.className = 'event-card-header';
+
+  const leftSection = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'event-card-title';
+  title.textContent = event.title;
+
+  const person = document.createElement('div');
+  person.className = 'event-card-person';
+  person.textContent = event.person_name;
+
+  leftSection.appendChild(title);
+  leftSection.appendChild(person);
+
+  const rightSection = document.createElement('div');
+  if (event.event_date) {
+    const dateDiv = document.createElement('div');
+    dateDiv.className = 'event-card-date';
+    dateDiv.textContent = formatEventDate(event.event_date);
+    rightSection.appendChild(dateDiv);
+  }
+
+  const statusBadge = document.createElement('span');
+  statusBadge.className = `status-badge ${event.status}`;
+  statusBadge.textContent = event.status;
+  rightSection.appendChild(statusBadge);
+
+  header.appendChild(leftSection);
+  header.appendChild(rightSection);
+
+  const body = document.createElement('div');
+  body.className = 'event-card-body';
+
+  if (event.description) {
+    const description = document.createElement('div');
+    description.className = 'event-card-description';
+    description.textContent = event.description;
+    body.appendChild(description);
+  }
+
+  const meta = document.createElement('div');
+  meta.className = 'event-card-meta';
+
+  if (event.venue || event.city) {
+    const locationDiv = document.createElement('div');
+    locationDiv.className = 'event-card-meta-item';
+    const parts = [];
+    if (event.venue) parts.push(event.venue);
+    if (event.city) parts.push(event.city);
+    if (event.country) parts.push(event.country);
+    locationDiv.innerHTML = `📍 ${parts.join(', ')}`;
+    meta.appendChild(locationDiv);
+  }
+
+  if (event.source_url) {
+    const sourceDiv = document.createElement('div');
+    sourceDiv.className = 'event-card-meta-item';
+    sourceDiv.innerHTML = `🔗 <a href="${event.source_url}" target="_blank">Source</a>`;
+    meta.appendChild(sourceDiv);
+  }
+
+  body.appendChild(meta);
+
+  const actions = document.createElement('div');
+  actions.className = 'event-card-actions';
+
+  if (event.url) {
+    const eventLink = document.createElement('a');
+    eventLink.href = event.url;
+    eventLink.target = '_blank';
+    eventLink.className = 'btn-primary';
+    eventLink.textContent = 'View Event';
+    actions.appendChild(eventLink);
+  }
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'btn-text';
+  editBtn.textContent = 'Edit';
+  editBtn.onclick = () => editEvent(event);
+  actions.appendChild(editBtn);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'btn-text';
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.onclick = () => deleteEvent(event.id, event.title);
+  actions.appendChild(deleteBtn);
+
+  body.appendChild(actions);
+
+  card.appendChild(header);
+  card.appendChild(body);
+
+  return card;
+}
+
+// Event filters
+document.getElementById('personFilter').addEventListener('change', loadEvents);
+document.getElementById('statusFilter').addEventListener('change', loadEvents);
+
+// Add event button
+// Extract All Events button
+document.getElementById('extractAllEventsBtn').addEventListener('click', () => {
+  extractAllEvents();
+});
+
+document.getElementById('addEventBtn').addEventListener('click', async () => {
+  editingEventId = null;
+  document.getElementById('eventFormTitle').textContent = 'Add New Event';
+
+  // Load people for dropdown
+  await loadPeopleForDropdown();
+
+  // Reset form
+  document.getElementById('eventForm').reset();
+  document.getElementById('eventStatus').value = 'upcoming';
+
+  showView('eventForm');
+});
+
+async function loadPeopleForDropdown() {
+  try {
+    const response = await fetch('/api/people');
+    const data = await response.json();
+    peopleCache = data.people;
+
+    // Populate person filter
+    const personFilter = document.getElementById('personFilter');
+    personFilter.innerHTML = '<option value="">All People</option>';
+    data.people.forEach(person => {
+      const option = document.createElement('option');
+      option.value = person.id;
+      option.textContent = person.name;
+      personFilter.appendChild(option);
+    });
+
+    // Populate event form person dropdown
+    const eventPerson = document.getElementById('eventPerson');
+    eventPerson.innerHTML = '<option value="">Select a person...</option>';
+    data.people.forEach(person => {
+      const option = document.createElement('option');
+      option.value = person.id;
+      option.textContent = person.name;
+      eventPerson.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error loading people:', error);
+  }
+}
+
+// Event form submission
+document.getElementById('eventForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const formData = {
+    person_id: parseInt(document.getElementById('eventPerson').value),
+    title: document.getElementById('eventTitle').value.trim(),
+    description: document.getElementById('eventDescription').value.trim() || null,
+    event_date: document.getElementById('eventDate').value || null,
+    event_end_date: document.getElementById('eventEndDate').value || null,
+    venue: document.getElementById('eventVenue').value.trim() || null,
+    city: document.getElementById('eventCity').value.trim() || null,
+    country: document.getElementById('eventCountry').value.trim() || null,
+    location: document.getElementById('eventLocation').value.trim() || null,
+    url: document.getElementById('eventUrl').value.trim() || null,
+    status: document.getElementById('eventStatus').value
+  };
+
+  if (!formData.person_id || !formData.title) {
+    alert('Person and title are required');
+    return;
+  }
+
+  try {
+    const method = editingEventId ? 'PUT' : 'POST';
+    const url = editingEventId ? `/api/events/${editingEventId}` : '/api/events';
+
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+
+    if (!response.ok) throw new Error('Failed to save event');
+
+    showView('events');
+    loadEvents();
+  } catch (error) {
+    console.error('Error saving event:', error);
+    alert('Failed to save event');
+  }
+});
+
+function editEvent(event) {
+  editingEventId = event.id;
+  document.getElementById('eventFormTitle').textContent = 'Edit Event';
+
+  loadPeopleForDropdown().then(() => {
+    document.getElementById('eventPerson').value = event.person_id;
+    document.getElementById('eventTitle').value = event.title;
+    document.getElementById('eventDescription').value = event.description || '';
+
+    if (event.event_date) {
+      document.getElementById('eventDate').value = formatDateTimeForInput(event.event_date);
+    }
+    if (event.event_end_date) {
+      document.getElementById('eventEndDate').value = formatDateTimeForInput(event.event_end_date);
+    }
+
+    document.getElementById('eventVenue').value = event.venue || '';
+    document.getElementById('eventCity').value = event.city || '';
+    document.getElementById('eventCountry').value = event.country || '';
+    document.getElementById('eventLocation').value = event.location || '';
+    document.getElementById('eventUrl').value = event.url || '';
+    document.getElementById('eventStatus').value = event.status;
+
+    showView('eventForm');
+  });
+}
+
+async function deleteEvent(id, title) {
+  const confirmed = await showConfirmDialog(
+    'Delete Event',
+    `Are you sure you want to delete "${title}"?`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(`/api/events/${id}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Failed to delete event');
+
+    loadEvents();
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    alert('Failed to delete event');
+  }
+}
 
 // ==================== PEOPLE VIEW ====================
 async function loadPeople() {
@@ -98,31 +408,10 @@ function createPersonCard(person) {
 
   const name = document.createElement('h3');
   name.textContent = person.name;
-
-  const actions = document.createElement('div');
-  actions.className = 'person-card-actions';
-
-  const viewBtn = document.createElement('button');
-  viewBtn.className = 'btn-text';
-  viewBtn.textContent = 'View';
-  viewBtn.onclick = () => viewPerson(person.id);
-
-  const aiDiscoverBtn = document.createElement('button');
-  aiDiscoverBtn.className = 'btn-text primary';
-  aiDiscoverBtn.textContent = '🤖 AI Discover';
-  aiDiscoverBtn.onclick = () => aiDiscoverForPerson(person.id);
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'btn-text danger';
-  deleteBtn.textContent = 'Delete';
-  deleteBtn.onclick = () => deletePerson(person.id, person.name);
-
-  actions.appendChild(viewBtn);
-  actions.appendChild(aiDiscoverBtn);
-  actions.appendChild(deleteBtn);
+  name.style.cursor = 'pointer';
+  name.onclick = () => viewPerson(person.id);
 
   header.appendChild(name);
-  header.appendChild(actions);
 
   const info = document.createElement('div');
   info.className = 'person-card-info';
@@ -227,6 +516,7 @@ function displayPersonDetail(person) {
       <div class="section-header">
         <h3>Sources (${person.sources.length})</h3>
         <div style="display: flex; gap: 10px;">
+          <button id="extractEventsBtn" class="btn-primary">🎭 Extract Events</button>
           <button id="analyzeFrequencyBtn" class="btn-secondary">📊 Analyze Frequency</button>
           <button id="addSourceBtn" class="btn-secondary">+ Add Source</button>
         </div>
@@ -260,14 +550,6 @@ function displayPersonDetail(person) {
             <label for="sourceUrl">URL *</label>
             <input type="url" id="sourceUrl" required placeholder="https://example.com">
           </div>
-          <div class="form-group">
-            <label for="sourceConfidence">Confidence</label>
-            <select id="sourceConfidence">
-              <option value="high">High</option>
-              <option value="medium" selected>Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
           <div class="form-actions">
             <button type="button" id="cancelSourceBtn" class="btn-secondary">Cancel</button>
             <button type="submit" class="btn-primary">Add Source</button>
@@ -285,6 +567,11 @@ function displayPersonDetail(person) {
 
   document.getElementById('discoverPersonBtn').addEventListener('click', () => {
     discoverForPerson(person.id);
+  });
+
+  // Extract Events button
+  document.getElementById('extractEventsBtn').addEventListener('click', () => {
+    extractEventsForPerson(person.id);
   });
 
   // Analyze Frequency button
@@ -313,7 +600,6 @@ function displayPersonDetail(person) {
 
     const type = document.getElementById('sourceType').value;
     const url = document.getElementById('sourceUrl').value;
-    const confidence = document.getElementById('sourceConfidence').value;
 
     try {
       const response = await fetch('/api/sources', {
@@ -322,8 +608,7 @@ function displayPersonDetail(person) {
         body: JSON.stringify({
           person_id: person.id,
           type,
-          url,
-          confidence
+          url
         })
       });
 
@@ -366,20 +651,18 @@ function renderSources(sources) {
                   <a href="${source.url}" target="_blank" class="source-link">${source.url}</a>
                   ${source.last_post_date || source.avg_posts_per_month ? `
                     <div class="source-meta" style="font-size: 0.85rem; color: #666; margin-top: 4px;">
-                      ${source.last_post_date ? `📅 Last post: <strong>${formatDate(source.last_post_date)}</strong>` : ''}
+                      ${source.last_post_date ? `🕐 <strong>${formatTimeSince(source.last_post_date)}</strong> since last post` : ''}
                       ${source.last_post_date && source.avg_posts_per_month ? ' • ' : ''}
-                      ${source.avg_posts_per_month ? `📊 ${source.avg_posts_per_month.toFixed(1)} posts/month` : ''}
+                      ${source.avg_posts_per_month ? `📊 <strong>${source.avg_posts_per_month.toFixed(1)}</strong> posts/mo` : ''}
                     </div>
                   ` : ''}
                 </div>
-                <span class="confidence ${source.confidence}">${source.confidence}</span>
               </div>
               <div class="source-actions">
                 <button class="btn-text edit-source"
                         data-source-id="${source.id}"
                         data-source-type="${source.type}"
                         data-source-url="${source.url}"
-                        data-source-confidence="${source.confidence}"
                         data-last-post="${source.last_post_date || ''}"
                         data-avg-posts="${source.avg_posts_per_month || ''}">Edit</button>
                 <button class="btn-icon delete-source" data-source-id="${source.id}">×</button>
@@ -473,7 +756,7 @@ async function discoverForPerson(id) {
   }
 }
 
-async function editSource(sourceId, currentType, currentUrl, currentConfidence, currentLastPost = '', currentAvgPosts = '') {
+async function editSource(sourceId, currentType, currentUrl, currentLastPost = '', currentAvgPosts = '') {
   // Create inline edit form
   const sourceItem = document.querySelector(`.source-item[data-source-id="${sourceId}"]`);
   if (!sourceItem) return;
@@ -481,42 +764,25 @@ async function editSource(sourceId, currentType, currentUrl, currentConfidence, 
   const originalHTML = sourceItem.innerHTML;
 
   sourceItem.innerHTML = `
-    <form class="edit-source-form" style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <select class="edit-source-type" style="padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px; min-width: 120px;">
-          <option value="website" ${currentType === 'website' ? 'selected' : ''}>Website</option>
-          <option value="twitter" ${currentType === 'twitter' ? 'selected' : ''}>Twitter</option>
-          <option value="instagram" ${currentType === 'instagram' ? 'selected' : ''}>Instagram</option>
-          <option value="mastodon" ${currentType === 'mastodon' ? 'selected' : ''}>Mastodon</option>
-          <option value="facebook" ${currentType === 'facebook' ? 'selected' : ''}>Facebook</option>
-          <option value="publisher" ${currentType === 'publisher' ? 'selected' : ''}>Publisher</option>
-          <option value="other" ${currentType === 'other' ? 'selected' : ''}>Other</option>
-        </select>
-        <input type="url" class="edit-source-url" value="${currentUrl}" required
-               style="flex: 1; padding: 8px; border: 2px solid #667eea; border-radius: 6px;">
-        <select class="edit-source-confidence" style="padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px; min-width: 100px;">
-          <option value="high" ${currentConfidence === 'high' ? 'selected' : ''}>High</option>
-          <option value="medium" ${currentConfidence === 'medium' ? 'selected' : ''}>Medium</option>
-          <option value="low" ${currentConfidence === 'low' ? 'selected' : ''}>Low</option>
-        </select>
-      </div>
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
-          📅 Last Post:
-          <input type="date" class="edit-last-post" value="${currentLastPost}"
-                 style="padding: 6px; border: 2px solid #e0e0e0; border-radius: 6px;">
-        </label>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
-          📊 Posts/Month:
-          <input type="number" class="edit-avg-posts" value="${currentAvgPosts}" step="0.1" min="0"
-                 placeholder="e.g., 2.5"
-                 style="width: 100px; padding: 6px; border: 2px solid #e0e0e0; border-radius: 6px;">
-        </label>
-        <div style="margin-left: auto; display: flex; gap: 8px;">
-          <button type="submit" class="btn-primary" style="padding: 8px 16px; width: auto;">Save</button>
-          <button type="button" class="btn-secondary cancel-edit" style="padding: 8px 16px; width: auto;">Cancel</button>
-        </div>
-      </div>
+    <form class="edit-source-form" style="flex: 1; display: flex; gap: 10px; align-items: center;">
+      <select class="edit-source-type" style="padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px; min-width: 120px;">
+        <option value="website" ${currentType === 'website' ? 'selected' : ''}>Website</option>
+        <option value="twitter" ${currentType === 'twitter' ? 'selected' : ''}>Twitter</option>
+        <option value="instagram" ${currentType === 'instagram' ? 'selected' : ''}>Instagram</option>
+        <option value="mastodon" ${currentType === 'mastodon' ? 'selected' : ''}>Mastodon</option>
+        <option value="facebook" ${currentType === 'facebook' ? 'selected' : ''}>Facebook</option>
+        <option value="publisher" ${currentType === 'publisher' ? 'selected' : ''}>Publisher</option>
+        <option value="other" ${currentType === 'other' ? 'selected' : ''}>Other</option>
+      </select>
+      <input type="url" class="edit-source-url" value="${currentUrl}" required
+             style="flex: 1; padding: 8px; border: 2px solid #667eea; border-radius: 6px;">
+      <input type="date" class="edit-last-post" value="${currentLastPost}" placeholder="Last post"
+             style="padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px; width: 140px;">
+      <input type="number" class="edit-avg-posts" value="${currentAvgPosts}" step="0.1" min="0"
+             placeholder="Posts/mo"
+             style="width: 100px; padding: 8px; border: 2px solid #e0e0e0; border-radius: 6px;">
+      <button type="submit" class="btn-primary" style="padding: 8px 16px; width: auto;">Save</button>
+      <button type="button" class="btn-secondary cancel-edit" style="padding: 8px 16px; width: auto;">Cancel</button>
     </form>
   `;
 
@@ -533,15 +799,13 @@ async function editSource(sourceId, currentType, currentUrl, currentConfidence, 
 
     const newType = sourceItem.querySelector('.edit-source-type').value;
     const newUrl = sourceItem.querySelector('.edit-source-url').value;
-    const newConfidence = sourceItem.querySelector('.edit-source-confidence').value;
     const newLastPost = sourceItem.querySelector('.edit-last-post').value;
     const newAvgPosts = sourceItem.querySelector('.edit-avg-posts').value;
 
     try {
       const updateData = {
         type: newType,
-        url: newUrl,
-        confidence: newConfidence
+        url: newUrl
       };
 
       // Only include frequency data if provided
@@ -588,10 +852,9 @@ function attachSourceEventListeners() {
       const sourceId = e.target.dataset.sourceId;
       const sourceType = e.target.dataset.sourceType;
       const sourceUrl = e.target.dataset.sourceUrl;
-      const sourceConfidence = e.target.dataset.sourceConfidence;
       const lastPost = e.target.dataset.lastPost;
       const avgPosts = e.target.dataset.avgPosts;
-      editSource(sourceId, sourceType, sourceUrl, sourceConfidence, lastPost, avgPosts);
+      editSource(sourceId, sourceType, sourceUrl, lastPost, avgPosts);
     });
   });
 }
@@ -615,133 +878,6 @@ async function deleteSource(sourceId) {
   }
 }
 
-// ==================== DISCOVERY VIEW (Phase 1) ====================
-const discoverForm = document.getElementById('peopleForm');
-const loading = document.getElementById('loading');
-const resultsSection = document.getElementById('resultsSection');
-const resultsDiv = document.getElementById('results');
-const discoverBtn = document.getElementById('discoverBtn');
-
-discoverForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const people = [
-    document.getElementById('person1').value.trim(),
-    document.getElementById('person2').value.trim(),
-    document.getElementById('person3').value.trim(),
-    document.getElementById('person4').value.trim()
-  ].filter(name => name !== '');
-
-  if (people.length < 2) {
-    alert('Please enter at least 2 people');
-    return;
-  }
-
-  const saveToDb = document.getElementById('saveToDb').checked;
-
-  loading.classList.remove('hidden');
-  resultsSection.classList.add('hidden');
-  discoverBtn.disabled = true;
-
-  try {
-    const response = await fetch('/api/discover-sources', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ people, save_to_db: saveToDb })
-    });
-
-    if (!response.ok) throw new Error('Failed to discover sources');
-
-    const data = await response.json();
-    displayDiscoveryResults(data.results, saveToDb);
-
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Failed to discover sources. Please try again.');
-  } finally {
-    loading.classList.add('hidden');
-    discoverBtn.disabled = false;
-  }
-});
-
-function displayDiscoveryResults(results, saved) {
-  resultsDiv.innerHTML = '';
-
-  if (saved) {
-    const savedMessage = document.createElement('div');
-    savedMessage.className = 'success-message';
-    savedMessage.innerHTML = `
-      <p>✓ Saved to database! <a href="#" id="viewSavedLink">View saved people</a></p>
-    `;
-    resultsDiv.appendChild(savedMessage);
-
-    setTimeout(() => {
-      document.getElementById('viewSavedLink').addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('people');
-        loadPeople();
-      });
-    }, 0);
-  }
-
-  results.forEach(result => {
-    const personDiv = document.createElement('div');
-    personDiv.className = 'person-result';
-
-    const personTitle = document.createElement('h3');
-    personTitle.textContent = result.person;
-    personDiv.appendChild(personTitle);
-
-    if (result.sources.length === 0) {
-      const noSources = document.createElement('p');
-      noSources.className = 'no-sources';
-      noSources.textContent = 'No sources found';
-      personDiv.appendChild(noSources);
-    } else {
-      const sourcesList = document.createElement('div');
-      sourcesList.className = 'sources-list';
-
-      result.sources.forEach((source, index) => {
-        const sourceItem = document.createElement('div');
-        sourceItem.className = 'source-item';
-
-        const sourceInfo = document.createElement('div');
-        sourceInfo.className = 'source-info';
-
-        const sourceType = document.createElement('span');
-        sourceType.className = 'source-type';
-        sourceType.textContent = source.type;
-
-        const sourceUrl = document.createElement('div');
-        sourceUrl.className = 'source-url';
-        const link = document.createElement('a');
-        link.href = source.url;
-        link.target = '_blank';
-        link.textContent = source.url;
-        sourceUrl.appendChild(link);
-
-        sourceInfo.appendChild(sourceType);
-        sourceInfo.appendChild(sourceUrl);
-
-        const confidence = document.createElement('span');
-        confidence.className = `confidence ${source.confidence}`;
-        confidence.textContent = source.confidence;
-
-        sourceItem.appendChild(sourceInfo);
-        sourceItem.appendChild(confidence);
-
-        sourcesList.appendChild(sourceItem);
-      });
-
-      personDiv.appendChild(sourcesList);
-    }
-
-    resultsDiv.appendChild(personDiv);
-  });
-
-  resultsSection.classList.remove('hidden');
-  resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
 
 // ==================== POSTING FREQUENCY ANALYSIS ====================
 async function analyzePostingFrequency(personId) {
@@ -749,8 +885,18 @@ async function analyzePostingFrequency(personId) {
     return;
   }
 
+  const detailDiv = document.getElementById('personDetail');
+  const originalContent = detailDiv.innerHTML;
+
   try {
-    alert('📊 Analyzing posting frequency... This will take 1-2 minutes.');
+    // Show loading state
+    detailDiv.innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>📊 Analyzing posting frequency for all sources...</p>
+        <p style="color: #666; font-size: 0.9rem;">This may take 1-2 minutes depending on number of sources</p>
+      </div>
+    `;
 
     const response = await fetch(`/api/people/${personId}/analyze-frequency`, {
       method: 'POST',
@@ -763,34 +909,254 @@ async function analyzePostingFrequency(personId) {
     }
 
     const data = await response.json();
-    alert(`✅ Analysis complete!\nAnalyzed ${data.sources_analyzed} sources.`);
 
-    // Reload person detail to show updated info
-    viewPerson(personId);
+    // Show results
+    displayAnalysisResults(data, personId);
 
   } catch (error) {
     console.error('Error analyzing frequency:', error);
+    detailDiv.innerHTML = originalContent;
     alert('Failed to analyze posting frequency: ' + error.message);
   }
 }
 
-// ==================== HELPER FUNCTIONS ====================
-function formatDate(dateString) {
-  if (!dateString) return 'Unknown';
+function displayAnalysisResults(data, personId) {
+  const detailDiv = document.getElementById('personDetail');
 
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffTime = Math.abs(now - date);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  let resultsHtml = `
+    <div class="back-nav">
+      <button id="backToDetail" class="btn-secondary">← Back to Details</button>
+    </div>
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+    <h2>📊 Posting Frequency Analysis Results</h2>
+    <p style="margin-bottom: 30px; color: #666;">
+      Analyzed ${data.sources_analyzed} source${data.sources_analyzed !== 1 ? 's' : ''}
+    </p>
 
-  return `${Math.floor(diffDays / 365)} years ago`;
+    <div class="results-section">
+  `;
+
+  data.results.forEach(result => {
+    const timeSince = result.last_post_date ? formatTimeSince(result.last_post_date) : 'Unknown';
+    const postsPerMonth = result.avg_posts_per_month ? result.avg_posts_per_month.toFixed(1) : '0';
+
+    resultsHtml += `
+      <div class="person-result" style="margin-bottom: 20px;">
+        <h3 style="font-size: 1rem; margin-bottom: 10px;">
+          <a href="${result.url}" target="_blank">${result.url}</a>
+        </h3>
+        <div style="display: grid; gap: 10px;">
+          <div style="display: flex; gap: 20px;">
+            <div>
+              <strong>Last Post:</strong>
+              ${result.last_post_date ? `${timeSince} ago (${new Date(result.last_post_date).toLocaleDateString()})` : 'Unknown'}
+            </div>
+            <div>
+              <strong>Avg Posts/Month:</strong> ${postsPerMonth}
+            </div>
+          </div>
+          <div style="color: #666; font-size: 0.9rem; font-style: italic;">
+            ${result.analysis}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  resultsHtml += `
+    </div>
+
+    <div style="margin-top: 30px; text-align: center;">
+      <button id="viewUpdatedPerson" class="btn-primary">View Updated Source List</button>
+    </div>
+  `;
+
+  detailDiv.innerHTML = resultsHtml;
+
+  document.getElementById('backToDetail').addEventListener('click', () => {
+    viewPerson(personId);
+  });
+
+  document.getElementById('viewUpdatedPerson').addEventListener('click', () => {
+    viewPerson(personId);
+  });
 }
+
+async function extractEventsForPerson(personId) {
+  if (!confirm('This will extract and verify events from all sources using AI. It may take 2-5 minutes and cost ~$2-5. Continue?')) {
+    return;
+  }
+
+  const detailDiv = document.getElementById('personDetail');
+  const originalContent = detailDiv.innerHTML;
+
+  try {
+    // Show loading state
+    detailDiv.innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>🎭 Extracting events from all sources...</p>
+        <p style="color: #666; font-size: 0.9rem;">This may take 2-5 minutes depending on number of sources</p>
+        <p style="color: #999; font-size: 0.85rem; margin-top: 10px;">
+          ✓ Extracting events with AI<br>
+          ✓ Verifying URLs (HTTP check)<br>
+          ✓ Validating content (AI match)<br>
+          ✓ Checking dates and registration links
+        </p>
+      </div>
+    `;
+
+    const response = await fetch(`/api/people/${personId}/extract-events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to extract events');
+    }
+
+    const data = await response.json();
+
+    // Show success message
+    detailDiv.innerHTML = `
+      <div class="success-message" style="text-align: center; padding: 40px;">
+        <div style="font-size: 3rem; margin-bottom: 20px;">✅</div>
+        <h2>Event Extraction Complete!</h2>
+        <div style="margin: 30px 0; font-size: 1.1rem;">
+          <p><strong>${data.events_saved}</strong> events saved to review queue</p>
+          <p style="color: #666; margin-top: 10px;">
+            Processed ${data.sources_processed} of ${data.total_sources} sources<br>
+            Found ${data.events_extracted} event candidates
+          </p>
+        </div>
+        <div style="margin-top: 40px; display: flex; gap: 15px; justify-content: center;">
+          <button id="backToPersonBtn" class="btn-secondary">← Back to Person</button>
+          <button id="reviewEventsBtn" class="btn-primary">Review Events →</button>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners to buttons
+    document.getElementById('backToPersonBtn').addEventListener('click', () => {
+      viewPerson(personId);
+    });
+
+    document.getElementById('reviewEventsBtn').addEventListener('click', () => {
+      showView('reviewEvents');
+      loadUnverifiedEvents();
+    });
+
+  } catch (error) {
+    console.error('Error extracting events:', error);
+    detailDiv.innerHTML = originalContent;
+    alert('Failed to extract events: ' + error.message);
+  }
+}
+
+async function extractAllEvents() {
+  // First, get all people
+  const response = await fetch('/api/people');
+  const data = await response.json();
+  const people = data.people;
+
+  if (people.length === 0) {
+    alert('No people found. Add some people first!');
+    return;
+  }
+
+  const totalSources = people.reduce((sum, p) => sum + (p.source_count || 0), 0);
+  const estimatedMinutes = Math.ceil(totalSources * 0.5); // ~30 seconds per source
+  const estimatedCost = totalSources * 1; // ~$1 per source
+
+  if (!confirm(`This will extract events for ${people.length} people (${totalSources} total sources).\n\nEstimated time: ${estimatedMinutes}-${estimatedMinutes * 2} minutes\nEstimated cost: $${estimatedCost}-${estimatedCost * 2}\n\nContinue?`)) {
+    return;
+  }
+
+  // Show loading overlay on the events page
+  const eventsList = document.getElementById('eventsList');
+  const originalContent = eventsList.innerHTML;
+
+  try {
+    eventsList.innerHTML = `
+      <div class="loading" style="padding: 60px 20px;">
+        <div class="spinner"></div>
+        <h3 style="margin: 20px 0;">🎭 Extracting Events for All People</h3>
+        <p style="color: #666; margin-bottom: 20px;">This may take ${estimatedMinutes}-${estimatedMinutes * 2} minutes</p>
+        <div id="extractionProgress" style="color: #999; font-size: 0.9rem;">
+          <p>Processing person <span id="currentPersonNum">1</span> of ${people.length}...</p>
+          <p id="currentPersonName" style="margin-top: 10px; font-weight: 600;"></p>
+          <p id="extractionStats" style="margin-top: 20px; color: #666;"></p>
+        </div>
+      </div>
+    `;
+
+    let totalExtracted = 0;
+    let totalSaved = 0;
+
+    // Process each person sequentially
+    for (let i = 0; i < people.length; i++) {
+      const person = people[i];
+
+      // Update progress
+      document.getElementById('currentPersonNum').textContent = i + 1;
+      document.getElementById('currentPersonName').textContent = person.name;
+
+      try {
+        const response = await fetch(`/api/people/${person.id}/extract-events`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          totalExtracted += result.events_extracted || 0;
+          totalSaved += result.events_saved || 0;
+
+          document.getElementById('extractionStats').innerHTML = `
+            <strong>Progress:</strong><br>
+            Events extracted: ${totalExtracted}<br>
+            Events saved: ${totalSaved}
+          `;
+        }
+      } catch (error) {
+        console.error(`Error extracting for ${person.name}:`, error);
+      }
+    }
+
+    // Show completion message
+    eventsList.innerHTML = `
+      <div class="success-message" style="text-align: center; padding: 60px 20px;">
+        <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+        <h2>Extraction Complete for All People!</h2>
+        <div style="margin: 30px 0; font-size: 1.2rem;">
+          <p><strong>${totalSaved}</strong> events saved to review queue</p>
+          <p style="color: #666; margin-top: 15px;">
+            Processed ${people.length} people<br>
+            Found ${totalExtracted} event candidates
+          </p>
+        </div>
+        <div style="margin-top: 40px;">
+          <button id="reloadEventsBtn" class="btn-primary">Reload Events</button>
+        </div>
+      </div>
+    `;
+
+    // Wire up reload button
+    setTimeout(() => {
+      document.getElementById('reloadEventsBtn').addEventListener('click', () => {
+        loadEvents();
+      });
+    }, 0);
+
+  } catch (error) {
+    console.error('Error extracting all events:', error);
+    eventsList.innerHTML = originalContent;
+    alert('Failed to extract events: ' + error.message);
+  }
+}
+
+// ==================== HELPER FUNCTIONS ====================
 
 // ==================== CONFIRMATION DIALOG ====================
 function showConfirmDialog(title, message) {
@@ -838,6 +1204,50 @@ function formatDate(dateString) {
   return date.toLocaleDateString();
 }
 
+function formatTimeSince(dateString) {
+  if (!dateString) return 'Unknown';
+
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 7) return `${diffDays} days`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} wk`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} mo`;
+  return `${(diffDays / 365).toFixed(1)} years`;
+}
+
+function formatEventDate(dateString) {
+  if (!dateString) return 'Date TBD';
+
+  const date = new Date(dateString);
+  const options = {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  };
+
+  return date.toLocaleDateString('en-US', options);
+}
+
+function formatDateTimeForInput(dateString) {
+  if (!dateString) return '';
+
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 // ==================== INITIALIZATION ====================
-showView('people');
-loadPeople();
+showView('events');
+loadEvents();
+loadPeopleForDropdown();

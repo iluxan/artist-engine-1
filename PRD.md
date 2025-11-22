@@ -106,32 +106,64 @@ Store the people and sources for future use.
 - **FR2.2.3**: ✅ Basic CRUD operations (add/remove people, add/remove sources)
 - **FR2.2.3+**: ✅ Manual source addition, edit person details
 
-### Phase 3: Event Preview ⚠️ IN PROGRESS (Modified Approach)
-Show sample events found from the discovered sources.
+### Phase 3: Event Extraction & Verification ⚠️ IN PROGRESS
+Extract real, verified events from discovered sources using AI with strict quality controls.
 
-**NOTE**: Phase 3 was refocused on AI-powered source discovery first. Event parsing is next.
+**NOTE**: Phase 3a (AI-powered source discovery) is complete. Phase 3b (event extraction) uses 7-day cache model with manual review.
 
-#### FR3.1: Initial Event Scan ❌ NOT YET IMPLEMENTED
-- **FR3.1.1**: ❌ Scan discovered sources for recent/upcoming events
-- **FR3.1.2**: ❌ Extract basic event details:
-  - ❌ Event name
-  - ❌ Date and time (if available)
-  - ❌ Location/venue (if available)
-  - ❌ Link to source
-  - ❌ Associated person/entity
+**Storage Model**: Events are **NOT permanently stored**. Instead:
+- Events extracted via AI are cached for 7 days
+- User manually reviews and approves events before they appear
+- Approved events auto-expire after 7 days
+- No accumulation of stale or fake event data
 
-#### FR3.2: Event Preview Display ❌ NOT YET IMPLEMENTED
-- **FR3.2.1**: ❌ Show sample events found from each source
-- **FR3.2.2**: ❌ Basic list view with event details
-- **FR3.2.3**: ❌ Group events by person/source
-- **FR3.2.4**: ❌ Show which source each event came from
+#### FR3.1: Event Extraction with 4-Step Verification ⚠️ IN PROGRESS
+- **FR3.1.1**: ⚠️ Scan discovered sources for recent/upcoming events using OpenAI GPT-4
+- **FR3.1.2**: ⚠️ Extract event details:
+  - ⚠️ Event name/title
+  - ⚠️ Date and time (ISO format, must be future date)
+  - ⚠️ Location/venue (physical address or "Online")
+  - ⚠️ Event URL (must be accessible)
+  - ⚠️ Registration/ticket URL (required for verification)
+  - ⚠️ Associated person/entity
+- **FR3.1.3**: ⚠️ **4-Step Verification Pipeline** (ALL must pass):
+  - ⚠️ **HTTP Check**: Event URL returns HTTP 200 status
+  - ⚠️ **AI Content Validation**: Fetch URL content and verify it matches event details using GPT-4
+  - ⚠️ **Date Sanity Check**: Reject past dates, countdown timers, or dates >2 years in future
+  - ⚠️ **Registration URL Check**: Verify event has ticket/RSVP/registration link
+- **FR3.1.4**: ⚠️ Save verified events to review queue (not main database yet)
+- **FR3.1.5**: ⚠️ Track verification status for each check (pass/fail with reason)
 
-**What WAS completed in Phase 3:**
+#### FR3.2: Manual Review Queue ⚠️ IN PROGRESS
+- **FR3.2.1**: ⚠️ "Review Events" page showing extracted events awaiting approval
+- **FR3.2.2**: ⚠️ Each event card displays:
+  - ⚠️ Event details (title, date, location, URLs)
+  - ⚠️ Verification status badges (✓ URL works, ✓ Content validated, ✓ Date valid, ✓ Has registration)
+  - ⚠️ Source it was extracted from
+  - ⚠️ "Approve" and "Reject" buttons
+- **FR3.2.3**: ⚠️ Approved events move to main "Events" view
+- **FR3.2.4**: ⚠️ Rejected events are deleted and logged for future AI training
+
+#### FR3.3: Event Display & Expiry ⚠️ IN PROGRESS
+- **FR3.3.1**: ⚠️ "My Events" page showing approved events only
+- **FR3.3.2**: ⚠️ Filter by upcoming/person
+- **FR3.3.3**: ⚠️ Show expiry countdown (e.g., "Expires in 5 days")
+- **FR3.3.4**: ⚠️ "Refresh Events" button to re-extract from sources
+- **FR3.3.5**: ⚠️ Automatic cleanup: Delete events older than 7 days (scheduled job)
+
+**What WAS completed in Phase 3a:**
 - ✅ AI-powered source discovery (OpenAI GPT-4 integration)
-- ✅ URL verification and accessibility checks
-- ✅ Content analysis to verify event posting
-- ✅ Confidence scoring (0-100%)
-- ✅ Database schema enhancements for verification metadata
+- ✅ URL verification and accessibility checks for sources
+- ✅ Content analysis to verify sources post event information
+- ✅ Confidence scoring (0-100%) for sources
+- ✅ Database schema enhancements for source verification metadata
+
+**What's IN PROGRESS in Phase 3b:**
+- ⚠️ Event extraction with OpenAI
+- ⚠️ 4-step verification pipeline
+- ⚠️ Manual review queue UI
+- ⚠️ 7-day cache with auto-expiry
+- ⚠️ Event display interface
 
 ### Phase 4+: Full Featured Application
 Everything else comes later.
@@ -191,10 +223,13 @@ Everything else comes later.
 - Failed source checks should retry with exponential backoff
 - No data loss in case of system failures
 
-### NFR3: Accuracy
-- Minimize false positives (non-events mistaken for events)
-- Accurately extract event details (date, location, etc.)
-- Correctly filter by user's geographic area
+### NFR3: Accuracy & Verification
+- **False positive rate**: <5% (events passing verification must be real)
+- **4-step verification**: ALL checks must pass (HTTP 200, AI content match, valid date, registration URL)
+- **Manual review**: User approves/rejects events before they appear in main view
+- Accurately extract event details (date in ISO format, full location, working URLs)
+- Distinguish real events from: countdown timers, promotional content, past events, book releases
+- Correctly filter by user's geographic area (future phase)
 
 ### NFR4: Privacy
 - User data should be stored securely
@@ -238,9 +273,14 @@ Everything else comes later.
 - Data successfully persists across sessions
 - User can retrieve previously entered data without errors
 
-### Phase 3: Event Preview
-- System finds at least 1-2 sample events per person
-- Event data extraction accuracy: >80% of required fields captured correctly
+### Phase 3: Event Extraction & Verification
+- System extracts at least 5-10 event candidates per person from sources
+- **Verification accuracy**: >95% of events passing 4-step verification are real events
+- **False positive rate**: <5% (fake/incorrect events that pass verification)
+- **User acceptance rate**: >60% of verified events approved by user in review queue
+- Event data extraction accuracy: >90% of required fields (title, date, location, URLs) captured correctly
+- URL accessibility: 100% of approved events have working URLs (HTTP 200)
+- **Expiry compliance**: 100% of events >7 days old are automatically deleted
 
 ### Phase 4+
 - **Discovery Effectiveness**: System finds at least 1 relevant event per week per user
@@ -250,11 +290,12 @@ Everything else comes later.
 
 ## Open Questions
 1. **Geographic scope**: Start with single city or support multiple cities from day 1?
-2. **Event definition**: Include virtual events or only in-person?
+2. **Event definition**: Include virtual events or only in-person? ✅ **RESOLVED**: Include virtual events (marked as "Online")
 3. **Source validation**: How to handle when person has multiple accounts/sources?
-4. **Data retention**: How long to keep past event data?
+4. **Data retention**: How long to keep past event data? ✅ **RESOLVED**: 7-day cache model with auto-expiry, no permanent storage
 5. **Rate limiting**: How to handle API rate limits on social platforms?
-6. **Manual curation**: Should there be a way to manually add events not found by the system?
+6. **Manual curation**: Should there be a way to manually add events not found by the system? ✅ **RESOLVED**: Manual review queue where user approves/rejects AI-extracted events
+7. **Verification strictness**: Should all 4 verification steps be required, or make some optional? ✅ **RESOLVED**: All 4 required for maximum quality
 
 ## Timeline Estimate (Development)
 

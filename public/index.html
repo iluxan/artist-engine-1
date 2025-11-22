@@ -12,12 +12,142 @@
       <h1>Event Discovery Agent</h1>
       <p class="subtitle">Find events from people you care about</p>
       <nav class="main-nav">
-        <a href="#" data-page="people" class="nav-link active">My People</a>
-        <a href="#" data-page="discover" class="nav-link">Discover New</a>
+        <a href="#" data-page="events" class="nav-link">Events</a>
+        <a href="#" data-page="people" class="nav-link">My People</a>
       </nav>
     </header>
 
     <main>
+      <!-- Events View -->
+      <section id="eventsView" class="view-section hidden">
+        <div class="section-header">
+          <h2>Upcoming Events</h2>
+          <div style="display: flex; gap: 10px;">
+            <button id="extractAllEventsBtn" class="btn-primary">🎭 Extract All Events</button>
+            <button id="addEventBtn" class="btn-secondary">+ Add Event</button>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <div class="filter-group">
+            <label for="personFilter">Filter by person:</label>
+            <select id="personFilter">
+              <option value="">All People</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="statusFilter">Status:</label>
+            <select id="statusFilter">
+              <option value="upcoming">Upcoming</option>
+              <option value="past">Past</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="eventsList" class="events-list">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading events...</p>
+          </div>
+        </div>
+
+        <div id="eventsEmptyState" class="empty-state hidden">
+          <div style="text-align: center; padding: 40px 20px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">📅</div>
+            <h3>No Events Yet</h3>
+            <p style="color: #666; margin: 20px 0;">Extract events from your people's sources to see them here.</p>
+            <div style="margin-top: 30px;">
+              <button id="goToPeopleFromEvents" class="btn-primary">View My People →</button>
+            </div>
+            <p style="color: #999; font-size: 0.9rem; margin-top: 20px;">
+              Go to a person's page and click "🎭 Extract Events" to find their upcoming events.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Add/Edit Event Form -->
+      <section id="eventFormView" class="view-section hidden">
+        <div class="back-nav">
+          <button id="backFromEventForm" class="btn-text">← Back to Events</button>
+        </div>
+
+        <div class="form-container">
+          <h2 id="eventFormTitle">Add New Event</h2>
+          <form id="eventForm">
+            <div class="form-group">
+              <label for="eventPerson">Person *</label>
+              <select id="eventPerson" required>
+                <option value="">Select a person...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="eventTitle">Event Title *</label>
+              <input type="text" id="eventTitle" required placeholder="e.g., Book Signing at Powell's">
+            </div>
+
+            <div class="form-group">
+              <label for="eventDescription">Description</label>
+              <textarea id="eventDescription" rows="3" placeholder="Event details..."></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="eventDate">Date</label>
+                <input type="datetime-local" id="eventDate">
+              </div>
+              <div class="form-group">
+                <label for="eventEndDate">End Date (optional)</label>
+                <input type="datetime-local" id="eventEndDate">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="eventVenue">Venue</label>
+              <input type="text" id="eventVenue" placeholder="e.g., Powell's City of Books">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="eventCity">City</label>
+                <input type="text" id="eventCity" placeholder="e.g., Portland">
+              </div>
+              <div class="form-group">
+                <label for="eventCountry">Country</label>
+                <input type="text" id="eventCountry" placeholder="e.g., USA">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="eventLocation">Full Location</label>
+              <input type="text" id="eventLocation" placeholder="Full address or location description">
+            </div>
+
+            <div class="form-group">
+              <label for="eventUrl">Event URL</label>
+              <input type="url" id="eventUrl" placeholder="https://example.com/event">
+            </div>
+
+            <div class="form-group">
+              <label for="eventStatus">Status</label>
+              <select id="eventStatus">
+                <option value="upcoming">Upcoming</option>
+                <option value="past">Past</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="postponed">Postponed</option>
+              </select>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" id="cancelEventFormBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">Save Event</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <!-- Saved People View -->
       <section id="peopleView" class="view-section">
         <div class="section-header">
@@ -33,7 +163,7 @@
         </div>
 
         <div id="emptyState" class="empty-state hidden">
-          <p>No people saved yet. Click "Add Person" or "Discover New" to get started!</p>
+          <p>No people saved yet. Click "Add Person" to get started!</p>
         </div>
       </section>
 
@@ -73,41 +203,6 @@
         </div>
       </section>
 
-      <!-- Discovery View (Phase 1) -->
-      <section id="discoverView" class="view-section hidden">
-        <h2>Discover Sources</h2>
-        <p class="instruction">Enter 2-4 people to discover their online sources</p>
-
-        <form id="peopleForm">
-          <div class="input-group">
-            <input type="text" id="person1" placeholder="Person 1" required>
-            <input type="text" id="person2" placeholder="Person 2" required>
-            <input type="text" id="person3" placeholder="Person 3 (optional)">
-            <input type="text" id="person4" placeholder="Person 4 (optional)">
-          </div>
-
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" id="saveToDb" checked>
-              Save to database
-            </label>
-          </div>
-
-          <button type="submit" id="discoverBtn" class="btn-primary">
-            Discover Sources
-          </button>
-        </form>
-
-        <div id="loading" class="loading hidden">
-          <div class="spinner"></div>
-          <p>Discovering sources...</p>
-        </div>
-
-        <section id="resultsSection" class="results-section hidden">
-          <h2>Discovered Sources</h2>
-          <div id="results"></div>
-        </section>
-      </section>
     </main>
 
     <!-- Confirmation Dialog -->

@@ -17,30 +17,12 @@ Phase 4 adds the core functionality: automatic event discovery, parsing, and mon
 
 ### Source Type Parsers
 
-4. **Twitter/X Parser**
-   - Monitor tweets for event keywords
-   - Pattern matching: dates, locations, "show", "concert", "appearing"
-   - Extract potential events with lower confidence
-   - Confidence: Medium-Low (requires validation)
-
-5. **Instagram Parser**
-   - Parse captions for event announcements
-   - Look for date/location patterns
-   - Link to external event pages
-   - Confidence: Medium-Low
-
-6. **Website/Blog Parser**
+1. **Website/Blog Parser**
    - Generic web scraping
    - Look for calendar/events pages
    - Pattern matching for dates and locations
    - Structured data extraction (schema.org events)
    - Confidence: Medium (varies by site structure)
-
-7. **Facebook Events Parser**
-   - Use Facebook Graph API
-   - Query public events from pages
-   - Extract full event details
-   - Confidence: High (structured data)
 
 ### Parsing Infrastructure
 
@@ -217,7 +199,7 @@ class BaseParser {
 
 class EventbriteParser extends BaseParser { }
 class SongkickParser extends BaseParser { }
-class TwitterParser extends BaseParser { }
+class WebsiteParser extends BaseParser { }
 // ... etc
 ```
 
@@ -327,13 +309,12 @@ Component: NotificationSettings
 4. Write event query functions
 5. Add indexes for performance
 
-### Step 2: Event Parsers (8-10 hours)
+### Step 2: Event Parsers (6-8 hours)
 1. Implement base parser class
 2. Create Eventbrite parser
 3. Create Songkick parser
 4. Create generic website parser
-5. Create Twitter parser (optional)
-6. Test each parser individually
+5. Test each parser individually
 
 ### Step 3: Parsing Service (4-5 hours)
 1. Build parsingService.js
@@ -478,8 +459,6 @@ Component: NotificationSettings
    - Songkick API (free for non-commercial)
 
 2. **Optional but Recommended**
-   - Twitter API (requires approval)
-   - Facebook Graph API
    - SendGrid/Mailgun (email notifications)
 
 3. **Self-Hosted Alternatives**
@@ -511,7 +490,7 @@ Component: NotificationSettings
 
 ## Estimated Timeline
 - Database & Models: 3-4 hours
-- Event Parsers: 8-10 hours
+- Event Parsers: 6-8 hours
 - Parsing Service: 4-5 hours
 - Scheduler: 2-3 hours
 - Duplicate Detection: 3-4 hours
@@ -523,7 +502,7 @@ Component: NotificationSettings
 - Integration & Testing: 4-5 hours
 - Polish & Documentation: 2-3 hours
 
-**Total: 47-60 hours**
+**Total: 45-58 hours**
 
 ## Rollout Strategy
 

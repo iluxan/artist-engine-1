@@ -39,8 +39,10 @@ async function analyzePostingFrequency(url, sourceType) {
     const prompt = `Analyze this ${sourceType} page and determine:
 
 1. When was the most recent post/update published? (provide as ISO date: YYYY-MM-DD)
-2. Estimate average posts per month based on visible content
-3. Brief analysis of posting activity
+2. Estimate average posts per month based on visible content from the last 2-3 months
+3. Brief analysis of posting activity and frequency pattern
+
+Focus on recent activity (last 2-3 months) to give an accurate picture of current posting frequency.
 
 URL: ${url}
 
