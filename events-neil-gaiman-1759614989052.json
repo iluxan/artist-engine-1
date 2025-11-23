@@ -1,0 +1,21 @@
+{
+  "author": "Neil Gaiman",
+  "author_id": 3,
+  "extraction_date": "2025-10-04T21:56:29.052Z",
+  "total_sources_analyzed": 6,
+  "total_events_found": 1,
+  "events": [
+    {
+      "person_id": 3,
+      "source_id": 22,
+      "title": "All Hallow's Read",
+      "date": "2025-01-19",
+      "location": "Online",
+      "url": "https://www.neilgaiman.com",
+      "original_post_url": "https://www.neilgaiman.com",
+      "original_post_text": " Nav Share Journal Neil's Work Cool Stuff & Things About Neil Message Boards Where's Neil Search Links & Downloads Mousecircus.com FAQs Share Twitter Facebook Tumblr Pinterest GooglePlus New Releases Journal January 14, 2025 Over the past many months, I have watched the stories circulating the internet about me with horror and dismay. I’ve stayed quiet until now, both out of respect for the people who were sharing their stories and out of a desire not to draw even more attention to a lot of misinformation. I've always tried to be a private person, and felt increasingly that social media was the wrong place to talk... [more] Coming Soon All Hallow's Read will be upon us in weeks, 5 days, 2 hours, 4 minutes, 34 seconds <!-- var mn_len = 60; var hr_len = mn_len * 60; var dy_len = hr_len * 24; var wk_len = dy_len * 7; var dateDiff = 2253814; var update_freq = 1; var thisOne = document.getElementById(\"countdown_box\"); function output_countdown() { if (dateDiff < 1) { thisOne.innerHTML = \"<span>NOW AVAILABLE!</span>\"; } else { weeks = parseInt(dateDiff / wk_len); secs = dateDiff % wk_len; days = parseInt(secs / dy_len); secs = secs % dy_len; hours = parseInt(secs / hr_len); secs = secs % hr_len; mins = parseInt(secs / mn_len); secs = secs % mn_len; outStr = \"<nobr>\" + weeks + \" week\"; if (weeks != 1) outStr += \"s\"; outStr += \",</nobr> \"; outStr += \"<nobr>\" + days + \" day\"; if (days != 1) outStr += \"s\"; outStr += \",</nobr> \"; outStr += \"<nobr>\" + hours + \" hour\"; if (hours != 1) outStr += \"s\"; if (update_freq <= 60) { outStr += \",</nobr> \"; outStr += \"<nobr>\" + mins + \" minute\"; if (mins != 1) outStr += \"s\"; if (update_freq <= 1) { outStr += \",</nobr> \"; outStr += \"<nobr>\" + secs + \" second\"; if (secs != 1) outStr += \"s\"; } } outStr += \"</nobr>\"; thisOne.innerHTML = \"<span>\" + outStr + \"</span>\"; dateDiff = dateDiff - update_freq; setTimeout(\"output_countdown()\", update_freq * 1000); } } output_countdown(); //--> Email Site Comments | Sitemap © The Blank Corporation ",
+      "original_post_title": "Neil Gaiman",
+      "extracted_at": "2025-10-04T21:56:28.047Z"
+    }
+  ]
+}

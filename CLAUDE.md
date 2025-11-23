@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Generally how I want to handle planning:
+we should have one plan file "BIGPLAN.md" that has the overall project plan (extract whatever's left from the old PRD), and a CURRENT-PHASE-PLAN.md
+
+
 ## Project Overview
 
 Event Discovery Agent - A personal event discovery agent that tracks events from people you care about (artists, writers, performers, etc.). Currently at Phase 2 with database persistence. Phase 3 (event parsing and notifications) is planned next.
