@@ -13,6 +13,7 @@
       <p class="subtitle">Find events from people you care about</p>
       <nav class="main-nav">
         <a href="#" data-page="events" class="nav-link">Events</a>
+        <a href="#" data-page="reviewEvents" class="nav-link">Review Events <span id="reviewQueueBadge" class="badge hidden">0</span></a>
         <a href="#" data-page="people" class="nav-link">My People</a>
       </nav>
     </header>
@@ -63,6 +64,32 @@
             <p style="color: #999; font-size: 0.9rem; margin-top: 20px;">
               Go to a person's page and click "🎭 Extract Events" to find their upcoming events.
             </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Review Events View -->
+      <section id="reviewEventsView" class="view-section hidden">
+        <div class="section-header">
+          <h2>Review Events</h2>
+          <p class="subtitle">Approve or reject extracted events</p>
+        </div>
+
+        <div id="unverifiedEventsList" class="events-list">
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading events...</p>
+          </div>
+        </div>
+
+        <div id="noUnverifiedEvents" class="empty-state hidden">
+          <div style="text-align: center; padding: 40px 20px;">
+            <div style="font-size: 3rem; margin-bottom: 20px;">✅</div>
+            <h3>No Events to Review</h3>
+            <p style="color: #666; margin: 20px 0;">All events have been reviewed!</p>
+            <div style="margin-top: 30px;">
+              <button id="goToEventsFromReview" class="btn-primary">View My Events →</button>
+            </div>
           </div>
         </div>
       </section>

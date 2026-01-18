@@ -1,0 +1,90 @@
+{
+  "id": "resp_039e56eab145b61800692269993aec819e82bd6d7094bff990",
+  "object": "response",
+  "created_at": 1763862937,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 1500,
+  "max_tool_calls": null,
+  "model": "gpt-4o-2024-08-06",
+  "output": [
+    {
+      "id": "ws_039e56eab145b6180069226999d68c819e9f5d0c598b3f0cbc",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "query": "Alex Edelman tour dates 2025 2026"
+      }
+    },
+    {
+      "id": "msg_039e56eab145b618006922699ab794819e8eed8651810ee0a3",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "[\n  {\n    \"title\": \"Alex Edelman: 'What Are You Going To Do' Tour\",\n    \"date\": \"2025-06-27\",\n    \"time\": \"7:30 PM\",\n    \"location\": \"Barrymore Theatre, Madison, WI\",\n    \"url\": \"https://barrymorelive.com/event/alex-edelman/\",\n    \"description\": \"Alex Edelman brings his critically acclaimed 'What Are You Going To Do' tour to Madison, featuring his unique blend of stand-up comedy and storytelling.\"\n  },\n  {\n    \"title\": \"Alex Edelman Live at Zanies Comedy Club\",\n    \"date\": \"2025-07-25\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Zanies Comedy Club, Nashville, TN\",\n    \"url\": \"https://www.axs.com/au/events/879477/alex-edelman-tickets\",\n    \"description\": \"Join Alex Edelman for an evening of laughter at Zanies Comedy Club in Nashville. Note: This event is for audiences 18 and over.\"\n  },\n  {\n    \"title\": \"Alex Edelman Live at Zanies Comedy Club\",\n    \"date\": \"2025-07-26\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Zanies Comedy Club, Nashville, TN\",\n    \"url\": \"https://www.axs.com/au/events/879477/alex-edelman-tickets\",\n    \"description\": \"A second night of comedy with Alex Edelman at Zanies Comedy Club in Nashville. Note: This event is for audiences 18 and over.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Hanna Theatre\",\n    \"date\": \"2025-11-13\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Hanna Theatre, Cleveland, OH\",\n    \"url\": \"https://seatgeek.com/alex-edelman-tickets/comedy/2025-06-19-7-pm/17423275\",\n    \"description\": \"Experience Alex Edelman's sharp wit and humor live at the Hanna Theatre in Cleveland.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Carnegie Hall\",\n    \"date\": \"2025-11-15\",\n    \"time\": \"6:00 PM\",\n    \"location\": \"Carnegie Hall, New York, NY\",\n    \"url\": \"https://concerts50.com/show/alex-edelman-in-new-york-tickets-nov-15-2025\",\n    \"description\": \"Don't miss Alex Edelman's performance at the iconic Carnegie Hall in New York City.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Stand Up Live Phoenix\",\n    \"date\": \"2025-11-20\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Stand Up Live Phoenix, Phoenix, AZ\",\n    \"url\": \"https://concerts50.com/show/alex-edelman-in-phoenix-tickets-nov-20-2025\",\n    \"description\": \"Join Alex Edelman for a night of comedy at Stand Up Live Phoenix.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Wilma Theater\",\n    \"date\": \"2025-12-18\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Wilma Theater, Philadelphia, PA\",\n    \"url\": \"https://www.vividseats.com/alex-edelman-tickets-saint-paul-fitzgerald-theater-6-28-2025--theater-comedy/production/5614606\",\n    \"description\": \"Alex Edelman brings his comedic talents to the Wilma Theater in Philadelphia.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Wilma Theater\",\n    \"date\": \"2025-12-19\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Wilma Theater, Philadelphia, PA\",\n    \"url\": \"https://www.vividseats.com/alex-edelman-tickets-saint-paul-fitzgerald-theater-6-28-2025--theater-comedy/production/5614606\",\n    \"description\": \"A second night of comedy with Alex Edelman at the Wilma Theater in Philadelphia.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Wilma Theater\",\n    \"date\": \"2025-12-20\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Wilma Theater, Philadelphia, PA\",\n    \"url\": \"https://www.vividseats.com/alex-edelman-tickets-saint-paul-fitzgerald-theater-6-28-2025--theater-comedy/production/5614606\",\n    \"description\": \"Join Alex Edelman for another evening of laughter at the Wilma Theater in Philadelphia.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Wilma Theater\",\n    \"date\": \"2025-12-21\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Wilma Theater, Philadelphia, PA\",\n    \"url\": \"https://www.vividseats.com/alex-edelman-tickets-saint-paul-fitzgerald-theater-6-28-2025--theater-comedy/production/5614606\",\n    \"description\": \"Conclude the weekend with Alex Edelman's performance at the Wilma Theater in Philadelphia.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Carnegie Music Hall\",\n    \"date\": \"2026-02-21\",\n    \"time\": \"7:30 PM\",\n    \"location\": \"Carnegie Music Hall, Pittsburgh, PA\",\n    \"url\": \"https://www.axs.com/au/events/1147651\",\n    \"description\": \"Alex Edelman takes the stage at Carnegie Music Hall in Pittsburgh for an evening of comedy.\"\n  }\n] "
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 0.2,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 533,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 1256,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 1789
+  },
+  "user": null,
+  "metadata": {},
+  "output_text": "[\n  {\n    \"title\": \"Alex Edelman: 'What Are You Going To Do' Tour\",\n    \"date\": \"2025-06-27\",\n    \"time\": \"7:30 PM\",\n    \"location\": \"Barrymore Theatre, Madison, WI\",\n    \"url\": \"https://barrymorelive.com/event/alex-edelman/\",\n    \"description\": \"Alex Edelman brings his critically acclaimed 'What Are You Going To Do' tour to Madison, featuring his unique blend of stand-up comedy and storytelling.\"\n  },\n  {\n    \"title\": \"Alex Edelman Live at Zanies Comedy Club\",\n    \"date\": \"2025-07-25\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Zanies Comedy Club, Nashville, TN\",\n    \"url\": \"https://www.axs.com/au/events/879477/alex-edelman-tickets\",\n    \"description\": \"Join Alex Edelman for an evening of laughter at Zanies Comedy Club in Nashville. Note: This event is for audiences 18 and over.\"\n  },\n  {\n    \"title\": \"Alex Edelman Live at Zanies Comedy Club\",\n    \"date\": \"2025-07-26\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Zanies Comedy Club, Nashville, TN\",\n    \"url\": \"https://www.axs.com/au/events/879477/alex-edelman-tickets\",\n    \"description\": \"A second night of comedy with Alex Edelman at Zanies Comedy Club in Nashville. Note: This event is for audiences 18 and over.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Hanna Theatre\",\n    \"date\": \"2025-11-13\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Hanna Theatre, Cleveland, OH\",\n    \"url\": \"https://seatgeek.com/alex-edelman-tickets/comedy/2025-06-19-7-pm/17423275\",\n    \"description\": \"Experience Alex Edelman's sharp wit and humor live at the Hanna Theatre in Cleveland.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Carnegie Hall\",\n    \"date\": \"2025-11-15\",\n    \"time\": \"6:00 PM\",\n    \"location\": \"Carnegie Hall, New York, NY\",\n    \"url\": \"https://concerts50.com/show/alex-edelman-in-new-york-tickets-nov-15-2025\",\n    \"description\": \"Don't miss Alex Edelman's performance at the iconic Carnegie Hall in New York City.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Stand Up Live Phoenix\",\n    \"date\": \"2025-11-20\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Stand Up Live Phoenix, Phoenix, AZ\",\n    \"url\": \"https://concerts50.com/show/alex-edelman-in-phoenix-tickets-nov-20-2025\",\n    \"description\": \"Join Alex Edelman for a night of comedy at Stand Up Live Phoenix.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Wilma Theater\",\n    \"date\": \"2025-12-18\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Wilma Theater, Philadelphia, PA\",\n    \"url\": \"https://www.vividseats.com/alex-edelman-tickets-saint-paul-fitzgerald-theater-6-28-2025--theater-comedy/production/5614606\",\n    \"description\": \"Alex Edelman brings his comedic talents to the Wilma Theater in Philadelphia.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Wilma Theater\",\n    \"date\": \"2025-12-19\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Wilma Theater, Philadelphia, PA\",\n    \"url\": \"https://www.vividseats.com/alex-edelman-tickets-saint-paul-fitzgerald-theater-6-28-2025--theater-comedy/production/5614606\",\n    \"description\": \"A second night of comedy with Alex Edelman at the Wilma Theater in Philadelphia.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Wilma Theater\",\n    \"date\": \"2025-12-20\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Wilma Theater, Philadelphia, PA\",\n    \"url\": \"https://www.vividseats.com/alex-edelman-tickets-saint-paul-fitzgerald-theater-6-28-2025--theater-comedy/production/5614606\",\n    \"description\": \"Join Alex Edelman for another evening of laughter at the Wilma Theater in Philadelphia.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Wilma Theater\",\n    \"date\": \"2025-12-21\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Wilma Theater, Philadelphia, PA\",\n    \"url\": \"https://www.vividseats.com/alex-edelman-tickets-saint-paul-fitzgerald-theater-6-28-2025--theater-comedy/production/5614606\",\n    \"description\": \"Conclude the weekend with Alex Edelman's performance at the Wilma Theater in Philadelphia.\"\n  },\n  {\n    \"title\": \"Alex Edelman at Carnegie Music Hall\",\n    \"date\": \"2026-02-21\",\n    \"time\": \"7:30 PM\",\n    \"location\": \"Carnegie Music Hall, Pittsburgh, PA\",\n    \"url\": \"https://www.axs.com/au/events/1147651\",\n    \"description\": \"Alex Edelman takes the stage at Carnegie Music Hall in Pittsburgh for an evening of comedy.\"\n  }\n] "
+}

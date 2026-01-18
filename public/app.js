@@ -12,6 +12,7 @@ function showView(viewName) {
 
   const viewMap = {
     'events': 'eventsView',
+    'reviewEvents': 'reviewEventsView',
     'eventForm': 'eventFormView',
     'people': 'peopleView',
     'personDetail': 'personDetailView',
@@ -37,10 +38,13 @@ function showView(viewName) {
 document.querySelectorAll('.nav-link').forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
-    const page = e.target.dataset.page;
+    const page = e.target.dataset.page || e.target.closest('[data-page]')?.dataset.page;
     if (page === 'events') {
       showView('events');
       loadEvents();
+    } else if (page === 'reviewEvents') {
+      showView('reviewEvents');
+      loadUnverifiedEvents();
     } else if (page === 'people') {
       showView('people');
       loadPeople();
@@ -369,6 +373,197 @@ async function deleteEvent(id, title) {
   }
 }
 
+// ==================== REVIEW EVENTS VIEW ====================
+async function loadUnverifiedEvents() {
+  const eventsList = document.getElementById('unverifiedEventsList');
+  const emptyState = document.getElementById('noUnverifiedEvents');
+
+  eventsList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading events to review...</p></div>';
+  emptyState.classList.add('hidden');
+
+  try {
+    const response = await fetch('/api/events/unverified');
+    const data = await response.json();
+
+    // Update badge count
+    updateReviewQueueBadge(data.total);
+
+    if (data.events.length === 0) {
+      eventsList.innerHTML = '';
+      emptyState.classList.remove('hidden');
+
+      // Wire up empty state button
+      setTimeout(() => {
+        const goButton = document.getElementById('goToEventsFromReview');
+        if (goButton) {
+          goButton.addEventListener('click', () => {
+            showView('events');
+            loadEvents();
+          });
+        }
+      }, 0);
+
+      return;
+    }
+
+    eventsList.innerHTML = '';
+    data.events.forEach(event => {
+      const card = createUnverifiedEventCard(event);
+      eventsList.appendChild(card);
+    });
+
+  } catch (error) {
+    console.error('Error loading unverified events:', error);
+    eventsList.innerHTML = '<p class="error">Failed to load events</p>';
+  }
+}
+
+function updateReviewQueueBadge(count) {
+  const badge = document.getElementById('reviewQueueBadge');
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+}
+
+function createUnverifiedEventCard(event) {
+  const card = document.createElement('div');
+  card.className = 'unverified-event-card';
+
+  // Parse verification errors if present
+  let errors = [];
+  if (event.verification_errors) {
+    try {
+      errors = JSON.parse(event.verification_errors);
+    } catch (e) {
+      errors = [event.verification_errors];
+    }
+  }
+
+  card.innerHTML = `
+    <div class="unverified-event-header">
+      <div>
+        <div class="unverified-event-title">${event.title}</div>
+        <div class="unverified-event-meta">
+          <span>📅 ${event.date || 'No date'}</span>
+          <span>📍 ${event.location || 'No location'}</span>
+          <span>👤 ${event.person_name}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="verification-badges">
+      ${event.verification_http_check ?
+        '<span class="verification-badge success">✓ URL Works</span>' :
+        '<span class="verification-badge failure">✗ URL Failed</span>'}
+      ${event.verification_content_match ?
+        '<span class="verification-badge success">✓ Content Matches</span>' :
+        '<span class="verification-badge failure">✗ Content Mismatch</span>'}
+      ${event.verification_date_valid ?
+        '<span class="verification-badge success">✓ Date Valid</span>' :
+        '<span class="verification-badge failure">✗ Date Invalid</span>'}
+      ${event.verification_registration_url ?
+        '<span class="verification-badge success">✓ Has Registration</span>' :
+        '<span class="verification-badge warning">⚠ No Registration URL</span>'}
+    </div>
+
+    ${event.url ? `
+      <div style="margin: 15px 0;">
+        <a href="${event.url}" target="_blank" style="color: #667eea; text-decoration: none;">
+          🔗 ${event.url}
+        </a>
+      </div>
+    ` : ''}
+
+    ${event.registration_url ? `
+      <div style="margin: 10px 0;">
+        <a href="${event.registration_url}" target="_blank" style="color: #28a745; text-decoration: none;">
+          🎟️ ${event.registration_url}
+        </a>
+      </div>
+    ` : ''}
+
+    ${errors.length > 0 ? `
+      <div class="verification-errors">
+        <div class="verification-errors-title">⚠️ Verification Issues:</div>
+        <ul class="verification-errors-list">
+          ${errors.map(err => `<li>${err}</li>`).join('')}
+        </ul>
+      </div>
+    ` : ''}
+
+    ${event.original_post_text ? `
+      <div class="original-post">
+        <div class="original-post-title">Original Post:</div>
+        <div class="original-post-text">${event.original_post_text.substring(0, 300)}${event.original_post_text.length > 300 ? '...' : ''}</div>
+      </div>
+    ` : ''}
+
+    <div class="event-actions">
+      <button class="btn-approve" onclick="approveEvent(${event.id})">✓ Approve Event</button>
+      <button class="btn-reject" onclick="rejectEvent(${event.id})">✗ Reject Event</button>
+    </div>
+  `;
+
+  return card;
+}
+
+async function approveEvent(eventId) {
+  if (!confirm('Approve this event? It will be added to your events and expire in 7 days.')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/events/unverified/${eventId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to approve event');
+    }
+
+    // Reload unverified events list
+    loadUnverifiedEvents();
+
+    // Show success message
+    alert('Event approved! It will appear in your Events page and expire in 7 days.');
+
+  } catch (error) {
+    console.error('Error approving event:', error);
+    alert('Failed to approve event: ' + error.message);
+  }
+}
+
+async function rejectEvent(eventId) {
+  if (!confirm('Reject this event? It will be permanently deleted.')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/events/unverified/${eventId}`, {
+      method: 'DELETE'
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to reject event');
+    }
+
+    // Reload unverified events list
+    loadUnverifiedEvents();
+
+  } catch (error) {
+    console.error('Error rejecting event:', error);
+    alert('Failed to reject event: ' + error.message);
+  }
+}
+
 // ==================== PEOPLE VIEW ====================
 async function loadPeople() {
   const peopleList = document.getElementById('peopleList');
@@ -517,6 +712,7 @@ function displayPersonDetail(person) {
         <h3>Sources (${person.sources.length})</h3>
         <div style="display: flex; gap: 10px;">
           <button id="extractEventsBtn" class="btn-primary">🎭 Extract Events</button>
+          <button id="runRegressionTestBtn" class="btn-secondary" style="background: #6c757d; color: white;">🧪 Run Test</button>
           <button id="analyzeFrequencyBtn" class="btn-secondary">📊 Analyze Frequency</button>
           <button id="addSourceBtn" class="btn-secondary">+ Add Source</button>
         </div>
@@ -572,6 +768,11 @@ function displayPersonDetail(person) {
   // Extract Events button
   document.getElementById('extractEventsBtn').addEventListener('click', () => {
     extractEventsForPerson(person.id);
+  });
+
+  // Run Regression Test button
+  document.getElementById('runRegressionTestBtn').addEventListener('click', () => {
+    runRegressionTest(person.id);
   });
 
   // Analyze Frequency button
@@ -1153,6 +1354,162 @@ async function extractAllEvents() {
     console.error('Error extracting all events:', error);
     eventsList.innerHTML = originalContent;
     alert('Failed to extract events: ' + error.message);
+  }
+}
+
+async function runRegressionTest(personId) {
+  if (!confirm('This will run a full regression test:\n\n1. Extract events from all sources\n2. Verify they were added to review queue\n3. Analyze verification results\n\nThis may take 2-5 minutes and cost ~$2-5. Continue?')) {
+    return;
+  }
+
+  const detailDiv = document.getElementById('personDetail');
+  const originalContent = detailDiv.innerHTML;
+
+  try {
+    // Show loading state
+    detailDiv.innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>🧪 Running Regression Test...</p>
+        <p style="color: #666; font-size: 0.9rem;">Testing full event extraction workflow</p>
+        <p style="color: #999; font-size: 0.85rem; margin-top: 10px;">
+          ✓ Counting baseline events<br>
+          ✓ Extracting events from all sources<br>
+          ✓ Verifying events were added to queue<br>
+          ✓ Analyzing verification results<br>
+          ✓ Calculating quality score
+        </p>
+      </div>
+    `;
+
+    const response = await fetch(`/api/test/extract-regression/${personId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Regression test failed');
+    }
+
+    const data = await response.json();
+
+    // Determine overall status
+    const statusIcon = data.test_passed ? '✅' : '⚠️';
+    const statusText = data.test_passed ? 'TEST PASSED' : 'TEST COMPLETED WITH WARNINGS';
+    const statusColor = data.test_passed ? '#28a745' : '#ffc107';
+
+    // Show test results
+    detailDiv.innerHTML = `
+      <div style="padding: 40px; max-width: 900px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 40px;">
+          <div style="font-size: 4rem; margin-bottom: 20px;">${statusIcon}</div>
+          <h2 style="color: ${statusColor};">${statusText}</h2>
+          <p style="color: #666; margin-top: 10px;">Regression test for ${data.person_name}</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+          <div class="stat-card">
+            <h4>Extraction</h4>
+            <p class="stat-number">${data.extraction.events_extracted}</p>
+            <p class="stat-label">Events extracted</p>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+              ${data.extraction.sources_processed}/${data.extraction.total_sources} sources processed
+            </p>
+          </div>
+
+          <div class="stat-card">
+            <h4>Database</h4>
+            <p class="stat-number">${data.database.new_events}</p>
+            <p class="stat-label">New events added</p>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+              ${data.database.events_before} → ${data.database.events_after} total
+            </p>
+          </div>
+
+          <div class="stat-card">
+            <h4>Quality Score</h4>
+            <p class="stat-number" style="color: ${data.quality_score >= 50 ? '#28a745' : '#dc3545'};">${data.quality_score}%</p>
+            <p class="stat-label">Fully verified</p>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+              ${data.verification.allPassed}/${data.database.new_events} events
+            </p>
+          </div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+          <h3 style="margin-bottom: 15px;">Verification Breakdown</h3>
+          <div style="display: grid; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 4px;">
+              <span>HTTP Check (URL accessible)</span>
+              <span><strong style="color: #28a745;">✓ ${data.verification.httpCheck.passed}</strong> / <strong style="color: #dc3545;">✗ ${data.verification.httpCheck.failed}</strong></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 4px;">
+              <span>Content Match (AI validation)</span>
+              <span><strong style="color: #28a745;">✓ ${data.verification.contentMatch.passed}</strong> / <strong style="color: #dc3545;">✗ ${data.verification.contentMatch.failed}</strong></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 4px;">
+              <span>Date Valid (future, reasonable)</span>
+              <span><strong style="color: #28a745;">✓ ${data.verification.dateValid.passed}</strong> / <strong style="color: #dc3545;">✗ ${data.verification.dateValid.failed}</strong></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 4px;">
+              <span>Registration URL (ticket/RSVP link)</span>
+              <span><strong style="color: #28a745;">✓ ${data.verification.registrationUrl.passed}</strong> / <strong style="color: #dc3545;">✗ ${data.verification.registrationUrl.failed}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        ${data.sample_events.length > 0 ? `
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 15px;">Sample Events (first 5)</h3>
+            <div style="display: grid; gap: 10px;">
+              ${data.sample_events.map(event => `
+                <div style="padding: 12px; background: white; border-radius: 4px; border-left: 4px solid ${
+                  event.verification.http && event.verification.content && event.verification.date && event.verification.registration
+                    ? '#28a745'
+                    : '#ffc107'
+                };">
+                  <div style="font-weight: 600; margin-bottom: 5px;">${event.title || 'Untitled'}</div>
+                  <div style="font-size: 0.85rem; color: #666;">
+                    ${event.date ? new Date(event.date).toLocaleDateString() : 'No date'} •
+                    <a href="${event.url}" target="_blank" style="color: #007bff;">View event</a>
+                  </div>
+                  <div style="margin-top: 8px; font-size: 0.8rem;">
+                    ${event.verification.http ? '<span class="verification-badge success">✓ HTTP</span>' : '<span class="verification-badge failure">✗ HTTP</span>'}
+                    ${event.verification.content ? '<span class="verification-badge success">✓ Content</span>' : '<span class="verification-badge failure">✗ Content</span>'}
+                    ${event.verification.date ? '<span class="verification-badge success">✓ Date</span>' : '<span class="verification-badge failure">✗ Date</span>'}
+                    ${event.verification.registration ? '<span class="verification-badge success">✓ Reg</span>' : '<span class="verification-badge failure">✗ Reg</span>'}
+                  </div>
+                  ${event.errors ? `<div style="margin-top: 8px; font-size: 0.75rem; color: #dc3545;">${event.errors}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div style="margin-top: 40px; display: flex; gap: 15px; justify-content: center;">
+          <button id="backToPersonBtn" class="btn-secondary">← Back to Person</button>
+          <button id="reviewEventsBtn" class="btn-primary">Review ${data.database.new_events} New Events →</button>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners to buttons
+    setTimeout(() => {
+      document.getElementById('backToPersonBtn').addEventListener('click', () => {
+        viewPerson(personId);
+      });
+
+      document.getElementById('reviewEventsBtn').addEventListener('click', () => {
+        showView('reviewEvents');
+        loadUnverifiedEvents();
+      });
+    }, 0);
+
+  } catch (error) {
+    console.error('Error running regression test:', error);
+    detailDiv.innerHTML = originalContent;
+    alert('Regression test failed: ' + error.message);
   }
 }
 

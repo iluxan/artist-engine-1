@@ -64,10 +64,10 @@ async function discoverSourcesWithAI(personName, personDescription = '') {
 }
 
 /**
- * Step 1: Use GPT-4 to discover sources
+ * Step 1: Use GPT-4 with web search to discover sources
  */
 async function initialWebSearch(personName, personDescription) {
-  const prompt = `You are helping discover official event announcement sources for ${personName}${personDescription ? ` (${personDescription})` : ''}.
+  const prompt = `Search the web and find official event announcement sources for ${personName}${personDescription ? ` (${personDescription})` : ''}.
 
 Find the following information:
 1. Official website (with events page if available)
@@ -78,6 +78,7 @@ Find the following information:
 6. Any other official sources where they announce events
 
 IMPORTANT:
+- Use web search to find current, accurate URLs
 - Only return sources you are confident about
 - Prefer verified accounts when available
 - Focus on sources that actually post event announcements
@@ -100,23 +101,23 @@ Confidence must be one of: high, medium, low
 Return ONLY the JSON array, no other text.`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai.responses.create({
       model: MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that finds official event sources for public figures. Always return valid JSON.'
-        },
+      input: [
         {
           role: 'user',
           content: prompt
         }
       ],
+      tools: [
+        { type: 'web_search_preview' }
+      ],
       temperature: 0.3,
-      max_tokens: 2000
+      max_output_tokens: 2000
     });
 
-    const content = response.choices[0].message.content.trim();
+    // Extract text from Responses API structure
+    const content = response.output[0].content[0].text.trim();
 
     // Parse JSON response
     const jsonMatch = content.match(/\[[\s\S]*\]/);

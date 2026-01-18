@@ -340,6 +340,81 @@ app.get('/api/events', (req, res) => {
   }
 });
 
+// ==================== UNVERIFIED EVENTS (REVIEW QUEUE) ====================
+// IMPORTANT: These routes must come BEFORE /api/events/:id to avoid route collision
+
+// Get all unverified events
+app.get('/api/events/unverified', (req, res) => {
+  try {
+    const events = db.getAllUnverifiedEvents();
+    res.json({ events, total: events.length });
+  } catch (error) {
+    console.error('Error fetching unverified events:', error);
+    res.status(500).json({ error: 'Failed to fetch unverified events' });
+  }
+});
+
+// Get unverified event by ID
+app.get('/api/events/unverified/:id', (req, res) => {
+  try {
+    const event = db.getUnverifiedEventById(parseInt(req.params.id));
+    if (!event) {
+      return res.status(404).json({ error: 'Unverified event not found' });
+    }
+    res.json(event);
+  } catch (error) {
+    console.error('Error fetching unverified event:', error);
+    res.status(500).json({ error: 'Failed to fetch unverified event' });
+  }
+});
+
+// Approve unverified event (moves to events table)
+app.post('/api/events/unverified/:id/approve', (req, res) => {
+  try {
+    const event = db.approveEvent(parseInt(req.params.id));
+    res.json({
+      success: true,
+      event,
+      message: 'Event approved and will expire in 7 days'
+    });
+  } catch (error) {
+    console.error('Error approving event:', error);
+    res.status(500).json({ error: 'Failed to approve event: ' + error.message });
+  }
+});
+
+// Reject unverified event (delete)
+app.delete('/api/events/unverified/:id', (req, res) => {
+  try {
+    const success = db.deleteUnverifiedEvent(parseInt(req.params.id));
+    if (!success) {
+      return res.status(404).json({ error: 'Unverified event not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting unverified event:', error);
+    res.status(500).json({ error: 'Failed to delete unverified event' });
+  }
+});
+
+// Cleanup expired events
+app.post('/api/events/cleanup', (req, res) => {
+  try {
+    const deleted = db.deleteExpiredEvents();
+    res.json({
+      success: true,
+      deleted_count: deleted,
+      message: `Deleted ${deleted} expired event(s)`
+    });
+  } catch (error) {
+    console.error('Error cleaning up events:', error);
+    res.status(500).json({ error: 'Failed to cleanup events' });
+  }
+});
+
+// ==================== REGULAR EVENTS ENDPOINTS ====================
+// IMPORTANT: These routes with :id params must come AFTER specific routes above
+
 // Get event by ID
 app.get('/api/events/:id', (req, res) => {
   try {
@@ -428,74 +503,170 @@ app.delete('/api/events/:id', (req, res) => {
   }
 });
 
-// ==================== UNVERIFIED EVENTS (REVIEW QUEUE) ====================
+// ==================== TEST/REGRESSION ENDPOINTS ====================
 
-// Get all unverified events
-app.get('/api/events/unverified', (req, res) => {
-  try {
-    const events = db.getAllUnverifiedEvents();
-    res.json({ events, total: events.length });
-  } catch (error) {
-    console.error('Error fetching unverified events:', error);
-    res.status(500).json({ error: 'Failed to fetch unverified events' });
-  }
-});
+// Run regression test for event extraction workflow
+app.post('/api/test/extract-regression/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
 
-// Get unverified event by ID
-app.get('/api/events/unverified/:id', (req, res) => {
   try {
-    const event = db.getUnverifiedEventById(parseInt(req.params.id));
-    if (!event) {
-      return res.status(404).json({ error: 'Unverified event not found' });
+    const person = db.getPersonById(id);
+    if (!person) {
+      return res.status(404).json({ error: 'Person not found' });
     }
-    res.json(event);
-  } catch (error) {
-    console.error('Error fetching unverified event:', error);
-    res.status(500).json({ error: 'Failed to fetch unverified event' });
-  }
-});
 
-// Approve unverified event (moves to events table)
-app.post('/api/events/unverified/:id/approve', (req, res) => {
-  try {
-    const event = db.approveEvent(parseInt(req.params.id));
+    const sources = person.sources || [];
+    if (sources.length === 0) {
+      return res.status(400).json({ error: 'No sources found. Discover sources first.' });
+    }
+
+    console.log(`\n🧪 REGRESSION TEST: Event extraction for ${person.name}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+    // Step 1: Get baseline count
+    const beforeEvents = db.getAllUnverifiedEvents();
+    const beforeCount = beforeEvents.length;
+    console.log(`📊 Baseline: ${beforeCount} events in review queue`);
+
+    // Step 2: Run extraction
+    console.log(`\n🎯 Extracting events from ${sources.length} source(s)...\n`);
+
+    let totalExtracted = 0;
+    let totalSaved = 0;
+    let totalFailed = 0;
+    let sourcesProcessed = 0;
+
+    for (const source of sources) {
+      console.log(`[${sourcesProcessed + 1}/${sources.length}] ${source.type}: ${source.url}`);
+
+      try {
+        const results = await extractEventsFromSource(
+          source.url,
+          source.type,
+          person.id,
+          source.id
+        );
+
+        totalExtracted += results.extracted || 0;
+        totalSaved += results.saved || 0;
+        totalFailed += results.failed || 0;
+        sourcesProcessed++;
+
+      } catch (error) {
+        console.error(`❌ Error: ${error.message}`);
+        totalFailed++;
+      }
+
+      if (sourcesProcessed < sources.length) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
+
+    // Step 3: Get new count and analyze
+    const afterEvents = db.getAllUnverifiedEvents();
+    const afterCount = afterEvents.length;
+    const newEvents = afterCount - beforeCount;
+
+    console.log(`\n📊 Results:`);
+    console.log(`   - Events before: ${beforeCount}`);
+    console.log(`   - Events after: ${afterCount}`);
+    console.log(`   - New events added: ${newEvents}`);
+    console.log(`   - Events saved by extraction: ${totalSaved}`);
+
+    // Step 4: Analyze verification results
+    const newEventsList = afterEvents.slice(beforeCount);
+    const verificationStats = {
+      httpCheck: { passed: 0, failed: 0 },
+      contentMatch: { passed: 0, failed: 0 },
+      dateValid: { passed: 0, failed: 0 },
+      registrationUrl: { passed: 0, failed: 0 },
+      allPassed: 0,
+      allFailed: 0
+    };
+
+    newEventsList.forEach(event => {
+      // Count each verification check
+      if (event.verification_http_check) verificationStats.httpCheck.passed++;
+      else verificationStats.httpCheck.failed++;
+
+      if (event.verification_content_match) verificationStats.contentMatch.passed++;
+      else verificationStats.contentMatch.failed++;
+
+      if (event.verification_date_valid) verificationStats.dateValid.passed++;
+      else verificationStats.dateValid.failed++;
+
+      if (event.verification_registration_url) verificationStats.registrationUrl.passed++;
+      else verificationStats.registrationUrl.failed++;
+
+      // Count events that passed all checks
+      const passedAll = event.verification_http_check &&
+                       event.verification_content_match &&
+                       event.verification_date_valid &&
+                       event.verification_registration_url;
+      if (passedAll) verificationStats.allPassed++;
+
+      // Count events that failed all checks
+      const failedAll = !event.verification_http_check &&
+                       !event.verification_content_match &&
+                       !event.verification_date_valid &&
+                       !event.verification_registration_url;
+      if (failedAll) verificationStats.allFailed++;
+    });
+
+    console.log(`\n🔍 Verification Analysis (${newEvents} new events):`);
+    console.log(`   HTTP Check:         ✓ ${verificationStats.httpCheck.passed} / ✗ ${verificationStats.httpCheck.failed}`);
+    console.log(`   Content Match:      ✓ ${verificationStats.contentMatch.passed} / ✗ ${verificationStats.contentMatch.failed}`);
+    console.log(`   Date Valid:         ✓ ${verificationStats.dateValid.passed} / ✗ ${verificationStats.dateValid.failed}`);
+    console.log(`   Registration URL:   ✓ ${verificationStats.registrationUrl.passed} / ✗ ${verificationStats.registrationUrl.failed}`);
+    console.log(`   All checks passed:  ${verificationStats.allPassed}`);
+    console.log(`   All checks failed:  ${verificationStats.allFailed}`);
+
+    // Step 5: Quality assessment
+    const qualityScore = newEvents > 0 ? (verificationStats.allPassed / newEvents * 100).toFixed(1) : 0;
+    const testPassed = newEvents === totalSaved && verificationStats.allPassed > 0;
+
+    console.log(`\n📈 Quality Score: ${qualityScore}% (${verificationStats.allPassed}/${newEvents} fully verified)`);
+    console.log(`\n${testPassed ? '✅ TEST PASSED' : '⚠️  TEST COMPLETED WITH WARNINGS'}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+    // Return detailed test report
     res.json({
       success: true,
-      event,
-      message: 'Event approved and will expire in 7 days'
+      test_passed: testPassed,
+      person_id: id,
+      person_name: person.name,
+      extraction: {
+        sources_processed: sourcesProcessed,
+        total_sources: sources.length,
+        events_extracted: totalExtracted,
+        events_saved: totalSaved,
+        events_failed: totalFailed
+      },
+      database: {
+        events_before: beforeCount,
+        events_after: afterCount,
+        new_events: newEvents
+      },
+      verification: verificationStats,
+      quality_score: parseFloat(qualityScore),
+      sample_events: newEventsList.slice(0, 5).map(e => ({
+        id: e.id,
+        title: e.title,
+        date: e.date,
+        url: e.url,
+        verification: {
+          http: e.verification_http_check,
+          content: e.verification_content_match,
+          date: e.verification_date_valid,
+          registration: e.verification_registration_url
+        },
+        errors: e.verification_errors
+      }))
     });
-  } catch (error) {
-    console.error('Error approving event:', error);
-    res.status(500).json({ error: 'Failed to approve event: ' + error.message });
-  }
-});
 
-// Reject unverified event (delete)
-app.delete('/api/events/unverified/:id', (req, res) => {
-  try {
-    const success = db.deleteUnverifiedEvent(parseInt(req.params.id));
-    if (!success) {
-      return res.status(404).json({ error: 'Unverified event not found' });
-    }
-    res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting unverified event:', error);
-    res.status(500).json({ error: 'Failed to delete unverified event' });
-  }
-});
-
-// Cleanup expired events
-app.post('/api/events/cleanup', (req, res) => {
-  try {
-    const deleted = db.deleteExpiredEvents();
-    res.json({
-      success: true,
-      deleted_count: deleted,
-      message: `Deleted ${deleted} expired event(s)`
-    });
-  } catch (error) {
-    console.error('Error cleaning up events:', error);
-    res.status(500).json({ error: 'Failed to cleanup events' });
+    console.error('Error in regression test:', error);
+    res.status(500).json({ error: 'Regression test failed: ' + error.message });
   }
 });
 

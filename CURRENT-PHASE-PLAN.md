@@ -1,170 +1,246 @@
-# Current Phase Plan: Event Extraction with Full Verification & 7-Day Cache
+# Current Phase: Content Discovery Prototyping
 
-## Selected Approach
-Based on user requirements:
-- **Storage**: 7-day cache (events auto-expire, no permanent storage)
-- **Review**: Manual review queue (user approves each event before it appears)
-- **Verification**: Full 4-step validation (HTTP check + AI content validation + date sanity + registration URL)
+## Problem Statement
 
-## Goal
-Extract real, verified events from discovered sources and display them in a browsable interface **without accumulating fake/stale event data**.
+The current website scraping approach is **not working**:
+- Extracting hallucinations instead of real events
+- No access to actual social media posts/updates
+- Limited to what's visible on public HTML pages
+- No real event data found so far (0% success rate)
 
-## The Fake Event Problem (Now Solved)
+## New Goal
 
-**What was happening:**
-- AI extracted "All Hallow's Read" event from Neil Gaiman's site with date 2025-01-19
-- This was actually a countdown timer JavaScript widget, NOT a real event
-- The URL was just his homepage, not an actual event page
-- No verification was performed
+**Rapidly prototype and test different content discovery methods** to find real events from people we care about. Focus on data quality and iteration speed, NOT UI.
 
-**How we're solving it:**
-1. **HTTP Check**: Verify event URL returns HTTP 200
-2. **AI Content Validation**: Fetch URL and ask GPT-4 "Does this page actually describe this event?"
-3. **Date Sanity Check**: Reject past dates, countdown artifacts, dates >2 years away
-4. **Registration URL Required**: Event must have ticket/RSVP/registration link
-5. **Manual Review**: User sees all 4 verification results and approves/rejects each event
-6. **7-Day Expiry**: No old events accumulate, auto-delete after 7 days
+## Completed Infrastructure (Available for Testing)
 
-## Implementation Status
+✅ **Review Queue System**: Events flow into `unverified_events` table, can be approved/rejected via UI
+✅ **Verification Pipeline**: 4-step validation (HTTP, content match, date, registration URL)
+✅ **Database Schema**: Ready to store events from any source
+✅ **API Endpoints**: Can inject events from any discovery method for testing
+✅ **Regression Testing**: Endpoint to validate full extraction → review workflow
 
-### ✅ Completed
+## Content Discovery Approaches to Test
 
-**Part 1: Event Extraction with Verification**
-- Added `unverified_events` table to database
-- Updated `events` table with `expires_at`, `approved_at`, `verification_status` columns
-- Implemented 4-step verification pipeline in `extractEvents.js`:
-  - `verifyEvent()` - Main verification coordinator
-  - `validateEventDate()` - Date sanity checks
-  - `checkRegistrationUrl()` - Registration/ticket URL validation
-  - `validateEventContent()` - AI content matching
-- Modified extraction flow to save to review queue with verification results
+### Phase 1: Search API Discovery (HIGHEST PRIORITY)
 
-**Part 2: API Endpoints**
-- `POST /api/people/:id/extract-events` - Extract events from all sources for a person
-- `GET /api/events/unverified` - Get all events awaiting review
-- `GET /api/events/unverified/:id` - Get single unverified event
-- `POST /api/events/unverified/:id/approve` - Approve event (moves to events table with 7-day expiry)
-- `DELETE /api/events/unverified/:id` - Reject event
-- `POST /api/events/cleanup` - Manually trigger expired event cleanup
+**Why**: Search engines already index event announcements, tour dates, appearances
+**Test without UI**: CLI scripts that output JSON results
 
-**Part 3: Frontend - Extraction UI**
-- Added "🎭 Extract Events" button to person detail page
-- Added loading states and progress indicators
-- Added success page with extraction summary
-- Added "🎭 Extract All Events" button to main Events page
-- Implemented sequential processing with live progress updates for batch extraction
+#### Option A: Perplexity API
+- **Pros**: AI-powered search, great for natural language queries, returns structured answers
+- **Cons**: Requires API key, costs per query
+- **Test query**: "What events or appearances is [person] doing in 2025?"
+- **Prototype**: `test-perplexity.js` - query for 1 person, output event candidates
 
-### ⚠️ In Progress
+#### Option B: OpenAI Web Search
+- **Pros**: We already have API key, can use GPT-4 with search grounding
+- **Cons**: May require ChatGPT Plus features or specific API access
+- **Test query**: Search for "[person] events 2025" and extract structured data
+- **Prototype**: `test-openai-search.js`
 
-**Part 4: Review Queue UI**
-- Need "Review Events" page showing unverified events
-- Need verification status badges (✓ URL works, ✓ Content matches, etc.)
-- Need approve/reject buttons
-- Need to display verification errors
+#### Option C: Brave Search API
+- **Pros**: Privacy-focused, free tier available, direct search results
+- **Cons**: Need to parse HTML from search results ourselves
+- **Test query**: "[person name] tour dates 2025" or "[person name] appearances 2025"
+- **Prototype**: `test-brave-search.js`
 
-**Part 5: Approved Events Display**
-- Need "My Events" page improvements
-- Need expiry countdown display ("Expires in 5 days")
-- Need better event cards with all details
+#### Option D: SerpAPI / Google Search API
+- **Pros**: Access to Google search results, structured data
+- **Cons**: Costs money, rate limited
+- **Test query**: "[person] events" with date filters
+- **Prototype**: `test-serpapi.js`
 
-**Part 6: Scheduled Cleanup**
-- Need `scheduler.js` with cron job
-- Should run daily at 3 AM
-- Should delete events where `expires_at < now()`
+**Success metric**: Find at least 1 real verifiable event per person
 
-## How It Works Now
+---
 
-1. User clicks "🎭 Extract Events" (on person page or "Extract All Events" on Events page)
-2. System scrapes each source's webpage
-3. AI extracts event candidates from posts/articles
-4. Each event runs through 4-step verification:
-   - HTTP check (URL accessible?)
-   - AI content validation (page matches event details?)
-   - Date sanity (future date, not countdown, within 2 years?)
-   - Registration URL (has ticket/RSVP link?)
-5. Events saved to `unverified_events` table with verification results
-6. User sees summary: "X events saved to review queue"
+### Phase 2: Social Media Feed Access
 
-**Missing**: User can't actually review the events yet (no Review UI)
+**Why**: Artists/performers announce events on social media first
+**Test without UI**: CLI scripts that fetch and parse feeds
 
-## Next Steps (Priority Order)
+#### Option A: RSS Feeds
+- **Pros**: Free, structured, no authentication
+- **Target sites**:
+  - Author blogs with RSS
+  - Bandsintown RSS feeds
+  - Songkick artist feeds
+- **Prototype**: `test-rss-feeds.js`
 
-### 1. Build Review Queue UI (Highest Priority)
-- Create "Review Events" page accessible from nav
-- Show list of unverified events with:
-  - Event title, date, location, URLs
-  - Verification badges showing which checks passed/failed
-  - Original post excerpt
-  - Person name
-- Add "Approve" button (green) - moves to approved events
-- Add "Reject" button (red) - deletes event
-- Show count of pending events in navigation
+#### Option B: Twitter/X API
+- **Pros**: Real-time announcements, structured data
+- **Cons**: Requires API access (expensive), rate limits
+- **Prototype**: `test-twitter-api.js`
+- **Alternative**: Use Twitter search via web scraping (unreliable)
 
-### 2. Improve Approved Events Display
-- Show approved events on "Events" page (already works but basic)
-- Add expiry countdown badges
-- Group by person or date
-- Add "Refresh" button to re-extract
+#### Option C: Mastodon API
+- **Pros**: Open API, free, many authors/artists have accounts
+- **Cons**: Need to know their Mastodon handles
+- **Prototype**: `test-mastodon-api.js`
 
-### 3. Add Cleanup Scheduler
-- Install `node-cron` package
-- Create `scheduler.js` module
-- Schedule daily cleanup at 3 AM
-- Log cleanup results
+#### Option D: Newsletter Parsing
+- **Pros**: Authors send event announcements via email
+- **Cons**: Need email integration, privacy concerns
+- **Approach**: Parse forwarded newsletters for event mentions
+- **Prototype**: `test-email-parsing.js`
 
-### 4. Polish & Error Handling
-- Better error messages during extraction
-- Handle rate limiting gracefully
-- Add retry logic for failed verifications
-- Show extraction costs in UI
+**Success metric**: Extract 3+ real events from feeds for 1 person
 
-## Cost Estimates (OpenAI API)
+---
 
-**Per extraction run (10 people, 5 sources each):**
-- Event extraction: $1-2 (existing AI calls)
-- HTTP checks: $0 (free)
-- AI content validation: ~$2-3 (verify ~50 events × $0.05 each)
-- Date checks: $0 (free)
-- Registration URL checks: $0 (free)
+### Phase 3: Event Platform APIs
 
-**Total per run: ~$3-5**
+**Why**: Centralized event databases with structured data
+**Test without UI**: Direct API calls, output structured events
 
-With 80% rejection rate (strict verification), only ~10 events approved per run.
+#### Option A: Bandsintown API
+- **Pros**: Comprehensive music event database, API available
+- **Cons**: Music-focused only
+- **Prototype**: `test-bandsintown.js`
 
-**Optimization ideas:**
-- Only re-extract from active sources (posted in last 30 days)
-- Cache verification results for 24 hours
-- User triggers extraction manually = $3-5 per click
-- Avoid scheduled daily extraction until costs are manageable
+#### Option B: Songkick API
+- **Pros**: Similar to Bandsintown, good coverage
+- **Cons**: Music-focused, API access unclear
+- **Prototype**: `test-songkick.js`
+
+#### Option C: Eventbrite API
+- **Pros**: Wide range of events, public API
+- **Cons**: Not all events listed there
+- **Prototype**: `test-eventbrite.js`
+
+#### Option D: Seatgeek / Ticketmaster APIs
+- **Pros**: Official ticketing data
+- **Cons**: Commercial focus, may require partnerships
+- **Prototype**: `test-ticketing-apis.js`
+
+**Success metric**: Find 5+ verified events from platforms
+
+---
+
+### Phase 4: Specialized Scrapers
+
+**Why**: Some sites have predictable structures worth targeting
+**Test without UI**: Targeted scrapers for high-value sources
+
+#### Option A: Author Tour Pages
+- Many authors have dedicated "/events" or "/tour" pages
+- **Prototype**: `test-author-scrapers.js`
+- **Target**: Neil Gaiman's official site, other author sites
+
+#### Option B: Venue Calendars
+- Check calendars of venues known to host certain performers
+- **Prototype**: `test-venue-calendars.js`
+
+#### Option C: Festival Lineups
+- Many festivals publish lineups months in advance
+- **Prototype**: `test-festival-lineups.js`
+
+**Success metric**: Extract events from 3+ different site types
+
+---
+
+## Testing Methodology
+
+### CLI-First Prototyping
+
+All prototypes should be standalone Node.js scripts:
+
+```bash
+# Example usage
+node test-perplexity.js "Neil Gaiman"
+# Output: JSON array of event candidates with source URLs
+
+node test-brave-search.js "Catherynne M. Valente"
+# Output: Structured events found via search
+
+node test-rss-feeds.js "https://example.com/feed"
+# Output: Events parsed from RSS feed
+```
+
+### Quality Metrics
+
+For each approach, measure:
+1. **Event count**: How many event candidates found?
+2. **Precision**: What % are real, verifiable events?
+3. **Recall**: Are we missing obvious events?
+4. **Cost**: API cost per person per run
+5. **Latency**: How long does it take?
+6. **Freshness**: How current are the events?
+
+### Integration Pattern
+
+Once a discovery method works:
+1. Create module in `/discovery` folder
+2. Add route: `POST /api/test/discover-via-[method]/:personId`
+3. Returns event candidates in standard format
+4. Pipe through existing verification pipeline
+5. Review in existing UI
+
+---
+
+## Implementation Plan
+
+### Week 1: Search APIs (Fastest Path to Real Events)
+- [ ] Test Perplexity API for 3 different people
+- [ ] Test Brave Search API for same 3 people
+- [ ] Compare results, pick best performer
+- [ ] Create reusable discovery module for winner
+
+### Week 2: Social Feeds
+- [ ] Identify RSS feeds for 5 people
+- [ ] Test RSS parsing
+- [ ] Test Mastodon API (if people are on Mastodon)
+- [ ] Measure event quality vs. search APIs
+
+### Week 3: Event Platforms
+- [ ] Sign up for Bandsintown API
+- [ ] Test with musicians in database
+- [ ] Evaluate coverage for authors/performers
+- [ ] Build integration if coverage is good
+
+### Week 4: Integration & Comparison
+- [ ] Run all working methods on same 10 people
+- [ ] Compare event counts and quality
+- [ ] Calculate cost per real event found
+- [ ] Pick top 2 methods to productionize
+
+---
 
 ## Success Criteria
 
-- [x] Event extraction completes with 4-step verification
-- [x] Unverified events saved to review queue with verification status
-- [ ] User can see verification badges (✓ or ✗) for each check
-- [ ] User can approve events → move to main events view with 7-day expiry
-- [ ] User can reject events → deleted permanently
-- [ ] Approved events auto-delete after 7 days
-- [ ] No fake events pass verification (countdown timers, promotional content rejected)
-- [ ] All approved events have working URLs (100% HTTP 200 rate)
-- [ ] <5% false positive rate after manual review
+This phase is successful when:
+- ✅ At least ONE discovery method finds real events consistently
+- ✅ Precision rate >50% (at least half of candidates are real events)
+- ✅ Cost per real event <$1
+- ✅ Can find events for 80%+ of people in database
+- ✅ Events include future dates (not past announcements)
 
-## Key Safeguards Against Fake Events
+**Current baseline**: 0 real events found from website scraping
 
-1. **HTTP Check**: URL must return 200 (rejects broken links)
-2. **AI Content Validation**: GPT-4 verifies URL content matches event details (rejects homepage-only events)
-3. **Date Sanity**: Rejects past dates, countdown timers, dates >2 years away
-4. **Registration URL**: Event must have ticket/RSVP link (strictest filter)
-5. **Manual Review**: Human approval required (final safeguard)
-6. **Auto-Expiry**: Old events deleted automatically (no stale data)
+---
 
-## Files Modified
+## Files to Archive (Future Work)
 
-- [x] `db.js` - Added unverified_events table and approval functions
-- [x] `extractEvents.js` - Added 4-step verification pipeline
-- [x] `server.js` - Added review queue and cleanup API endpoints
-- [x] `public/index.html` - Added Extract All Events button, improved empty state
-- [x] `public/app.js` - Added extraction UI logic and extractAllEvents function
-- [ ] `public/styles.css` - Need verification badge styles
-- [ ] `scheduler.js` - Create cleanup scheduler (not started)
-- [ ] `package.json` - Add `node-cron` dependency (not started)
+These are complete but not current priority:
+- ✅ Review Queue UI (`public/app.js` review events section)
+- ✅ Verification pipeline (`extractEvents.js`)
+- ✅ Regression testing (`POST /api/test/extract-regression/:id`)
+- ⏸️  Auto-expiry scheduler (not needed until we have real events)
+- ⏸️  UI improvements (not needed for prototyping)
+
+---
+
+## Next Immediate Action
+
+**START HERE**: Test Perplexity API search discovery
+
+1. Get Perplexity API key
+2. Create `test-perplexity.js`
+3. Query: "What events, appearances, or tour dates does [person] have in 2025?"
+4. Parse response for event data
+5. Output structured JSON
+6. Manually verify 1-2 results
+7. If >0 real events found → this is viable path
+
+**Alternative if no Perplexity access**: Try Brave Search API first

@@ -813,3 +813,182 @@ input[type="text"]:focus {
   grid-template-columns: 1fr 1fr;
   gap: 15px;
 }
+/* ==================== REVIEW EVENTS STYLES ==================== */
+
+/* Navigation Badge */
+.badge {
+  display: inline-block;
+  background: #dc3545;
+  color: white;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 5px;
+  font-weight: 600;
+}
+
+.badge.hidden {
+  display: none;
+}
+
+/* Unverified Event Card */
+.unverified-event-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: all 0.2s;
+}
+
+.unverified-event-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.unverified-event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 15px;
+}
+
+.unverified-event-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.unverified-event-meta {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.unverified-event-meta span {
+  margin-right: 15px;
+}
+
+/* Verification Badges */
+.verification-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.verification-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.verification-badge.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.verification-badge.failure {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.verification-badge.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* Event Actions */
+.event-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.btn-approve {
+  background: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-approve:hover {
+  background: #218838;
+}
+
+.btn-reject {
+  background: #dc3545;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-reject:hover {
+  background: #c82333;
+}
+
+/* Original Post Preview */
+.original-post {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-left: 4px solid #667eea;
+  border-radius: 4px;
+}
+
+.original-post-title {
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.original-post-text {
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-height: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.verification-errors {
+  margin-top: 10px;
+  padding: 10px;
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  border-radius: 4px;
+}
+
+.verification-errors-title {
+  font-weight: 600;
+  color: #856404;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.verification-errors-list {
+  color: #856404;
+  font-size: 0.85rem;
+  margin-left: 15px;
+}
