@@ -1,0 +1,90 @@
+{
+  "id": "resp_0c57455fa7dde1c00069226b1b10648195abbd02d0496caee7",
+  "object": "response",
+  "created_at": 1763863323,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 1500,
+  "max_tool_calls": null,
+  "model": "gpt-4o-2024-08-06",
+  "output": [
+    {
+      "id": "ws_0c57455fa7dde1c00069226b1c5bc08195995df32c6bea1aaf",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "query": "Cory Doctorow events 2025 2026 schedule"
+      }
+    },
+    {
+      "id": "msg_0c57455fa7dde1c00069226b1e11748195ad930989973f9f94",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "[\n  {\n    \"title\": \"Cory Doctorow Discusses Ensh*ttification with Lina M. Khan\",\n    \"date\": \"2025-10-06\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Central Library, Dweck Center, Brooklyn, NY\",\n    \"url\": \"https://www.bklynlibrary.org/calendar/cory-doctorow-discusses-central-library-dweck-20251006-0700pm\",\n    \"description\": \"Cory Doctorow discusses his book 'Ensh*ttification' with Lina M. Khan, exploring the decline of digital platforms and potential solutions.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at The Brattle Theatre\",\n    \"date\": \"2025-10-07\",\n    \"time\": \"6:00 PM\",\n    \"location\": \"The Brattle Theatre, Cambridge, MA\",\n    \"url\": \"https://allevents.in/cambridge/cory-doctorow-at-the-brattle-theatre/100001591235180259\",\n    \"description\": \"Cory Doctorow presents 'Enshittification: Why Everything Suddenly Got Worse and What to Do About It' in conversation with Randall Munroe.\"\n  },\n  {\n    \"title\": \"Cory Doctorow with Jenny Odell / Enshittification\",\n    \"date\": \"2025-10-20\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Public Works, San Francisco, CA\",\n    \"url\": \"https://www.eff.org/event/cory-doctorow-enshittification-oct-20\",\n    \"description\": \"Cory Doctorow discusses his new book 'Enshittification' with Jenny Odell, author of 'How To Do Nothing'.\"\n  },\n  {\n    \"title\": \"BC Libraries Present: Cory Doctorow\",\n    \"date\": \"2025-11-21\",\n    \"time\": \"12:00 PM\",\n    \"location\": \"Online via Crowdcast\",\n    \"url\": \"https://www.nvcl.ca/events/bc-libraries-present-cory-doctorow\",\n    \"description\": \"Cory Doctorow discusses 'Enshittification' with public policy expert Vass Bednar, exploring the decline of digital platforms and potential solutions.\"\n  }\n] "
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 0.2,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 538,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 511,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 1049
+  },
+  "user": null,
+  "metadata": {},
+  "output_text": "[\n  {\n    \"title\": \"Cory Doctorow Discusses Ensh*ttification with Lina M. Khan\",\n    \"date\": \"2025-10-06\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Central Library, Dweck Center, Brooklyn, NY\",\n    \"url\": \"https://www.bklynlibrary.org/calendar/cory-doctorow-discusses-central-library-dweck-20251006-0700pm\",\n    \"description\": \"Cory Doctorow discusses his book 'Ensh*ttification' with Lina M. Khan, exploring the decline of digital platforms and potential solutions.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at The Brattle Theatre\",\n    \"date\": \"2025-10-07\",\n    \"time\": \"6:00 PM\",\n    \"location\": \"The Brattle Theatre, Cambridge, MA\",\n    \"url\": \"https://allevents.in/cambridge/cory-doctorow-at-the-brattle-theatre/100001591235180259\",\n    \"description\": \"Cory Doctorow presents 'Enshittification: Why Everything Suddenly Got Worse and What to Do About It' in conversation with Randall Munroe.\"\n  },\n  {\n    \"title\": \"Cory Doctorow with Jenny Odell / Enshittification\",\n    \"date\": \"2025-10-20\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Public Works, San Francisco, CA\",\n    \"url\": \"https://www.eff.org/event/cory-doctorow-enshittification-oct-20\",\n    \"description\": \"Cory Doctorow discusses his new book 'Enshittification' with Jenny Odell, author of 'How To Do Nothing'.\"\n  },\n  {\n    \"title\": \"BC Libraries Present: Cory Doctorow\",\n    \"date\": \"2025-11-21\",\n    \"time\": \"12:00 PM\",\n    \"location\": \"Online via Crowdcast\",\n    \"url\": \"https://www.nvcl.ca/events/bc-libraries-present-cory-doctorow\",\n    \"description\": \"Cory Doctorow discusses 'Enshittification' with public policy expert Vass Bednar, exploring the decline of digital platforms and potential solutions.\"\n  }\n] "
+}

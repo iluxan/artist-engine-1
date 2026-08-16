@@ -191,7 +191,7 @@ function getAllPeople() {
     FROM people p
     LEFT JOIN sources s ON p.id = s.person_id
     GROUP BY p.id
-    ORDER BY p.created_at DESC
+    ORDER BY p.name COLLATE NOCASE ASC
   `;
   return db.prepare(query).all();
 }

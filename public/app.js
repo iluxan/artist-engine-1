@@ -5,7 +5,13 @@ let editingPersonId = null;
 let editingEventId = null;
 let peopleCache = [];
 
+// When true, showView will not push a new browser-history entry. Used while
+// restoring a view in response to the back/forward buttons (popstate).
+let suppressHistory = false;
+
 function showView(viewName) {
+  const previousView = currentView;
+
   document.querySelectorAll('.view-section').forEach(section => {
     section.classList.add('hidden');
   });
@@ -32,7 +38,66 @@ function showView(viewName) {
       link.classList.add('active');
     }
   });
+
+  // Record this navigation so the browser back/forward buttons can restore it.
+  // Skip when restoring (popstate) and when the view didn't actually change,
+  // so repeat clicks on the same tab don't pile up empty history entries.
+  if (!suppressHistory && viewName !== previousView) {
+    const state = {
+      view: viewName,
+      personId: currentPersonId,
+      editingPersonId: editingPersonId,
+      editingEventId: editingEventId
+    };
+    history.pushState(state, '', '#' + viewName);
+  }
 }
+
+// Re-display the view captured in a history entry, reloading its data, without
+// pushing a new entry (that would break forward navigation).
+function restoreView(state) {
+  suppressHistory = true;
+  try {
+    switch (state.view) {
+      case 'events':
+        showView('events');
+        loadEvents();
+        break;
+      case 'reviewEvents':
+        showView('reviewEvents');
+        loadUnverifiedEvents();
+        break;
+      case 'people':
+        showView('people');
+        loadPeople();
+        break;
+      case 'personDetail':
+        if (state.personId != null) {
+          viewPerson(state.personId);
+        } else {
+          showView('people');
+          loadPeople();
+        }
+        break;
+      case 'personForm':
+      case 'eventForm':
+        // Forms are transient; land the user back on a list rather than a
+        // half-filled form they can no longer meaningfully submit.
+        showView('events');
+        loadEvents();
+        break;
+      default:
+        showView('events');
+        loadEvents();
+    }
+  } finally {
+    suppressHistory = false;
+  }
+}
+
+window.addEventListener('popstate', (e) => {
+  restoreView(e.state || { view: 'events' });
+});
 
 // ==================== NAVIGATION ====================
 document.querySelectorAll('.nav-link').forEach(link => {
@@ -262,7 +327,7 @@ async function loadPeopleForDropdown() {
 
     // Populate person filter
     const personFilter = document.getElementById('personFilter');
-    personFilter.innerHTML = '<option value="">All People</option>';
+    personFilter.innerHTML = '<option value="">All Artists</option>';
     data.people.forEach(person => {
       const option = document.createElement('option');
       option.value = person.id;
@@ -272,7 +337,7 @@ async function loadPeopleForDropdown() {
 
     // Populate event form person dropdown
     const eventPerson = document.getElementById('eventPerson');
-    eventPerson.innerHTML = '<option value="">Select a person...</option>';
+    eventPerson.innerHTML = '<option value="">Select an artist...</option>';
     data.people.forEach(person => {
       const option = document.createElement('option');
       option.value = person.id;
@@ -303,7 +368,7 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
   };
 
   if (!formData.person_id || !formData.title) {
-    alert('Person and title are required');
+    alert('Artist and title are required');
     return;
   }
 
@@ -668,7 +733,7 @@ document.getElementById('personForm').addEventListener('submit', async (e) => {
     loadPeople();
   } catch (error) {
     console.error('Error saving person:', error);
-    alert('Failed to save person');
+    alert('Failed to save artist');
   }
 });
 
@@ -688,7 +753,7 @@ async function viewPerson(id) {
     displayPersonDetail(person);
   } catch (error) {
     console.error('Error loading person:', error);
-    detailDiv.innerHTML = '<p class="error">Failed to load person details</p>';
+    detailDiv.innerHTML = '<p class="error">Failed to load artist details</p>';
   }
 }
 
@@ -704,6 +769,7 @@ function displayPersonDetail(person) {
       <div class="person-detail-actions">
         <button id="editPersonBtn" class="btn-secondary">Edit</button>
         <button id="discoverPersonBtn" class="btn-primary">Discover Sources</button>
+        <button id="deletePersonBtn" class="btn-danger">Delete Artist</button>
       </div>
     </div>
 
@@ -763,6 +829,10 @@ function displayPersonDetail(person) {
 
   document.getElementById('discoverPersonBtn').addEventListener('click', () => {
     discoverForPerson(person.id);
+  });
+
+  document.getElementById('deletePersonBtn').addEventListener('click', async () => {
+    await deletePerson(person.id, person.name);
   });
 
   // Extract Events button
@@ -892,7 +962,7 @@ function editPerson(id, name, notes) {
 
 async function deletePerson(id, name) {
   const confirmed = await showConfirmDialog(
-    'Delete Person',
+    'Delete Artist',
     `Are you sure you want to delete "${name}" and all their sources?`
   );
 
@@ -900,12 +970,13 @@ async function deletePerson(id, name) {
 
   try {
     const response = await fetch(`/api/people/${id}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error('Failed to delete person');
+    if (!response.ok) throw new Error('Failed to delete artist');
 
+    showView('people');
     loadPeople();
   } catch (error) {
-    console.error('Error deleting person:', error);
-    alert('Failed to delete person');
+    console.error('Error deleting artist:', error);
+    alert('Failed to delete artist');
   }
 }
 
@@ -1232,7 +1303,7 @@ async function extractEventsForPerson(personId) {
           </p>
         </div>
         <div style="margin-top: 40px; display: flex; gap: 15px; justify-content: center;">
-          <button id="backToPersonBtn" class="btn-secondary">← Back to Person</button>
+          <button id="backToPersonBtn" class="btn-secondary">← Back to Artist</button>
           <button id="reviewEventsBtn" class="btn-primary">Review Events →</button>
         </div>
       </div>
@@ -1262,7 +1333,7 @@ async function extractAllEvents() {
   const people = data.people;
 
   if (people.length === 0) {
-    alert('No people found. Add some people first!');
+    alert('No artists found. Add some artists first!');
     return;
   }
 
@@ -1270,7 +1341,7 @@ async function extractAllEvents() {
   const estimatedMinutes = Math.ceil(totalSources * 0.5); // ~30 seconds per source
   const estimatedCost = totalSources * 1; // ~$1 per source
 
-  if (!confirm(`This will extract events for ${people.length} people (${totalSources} total sources).\n\nEstimated time: ${estimatedMinutes}-${estimatedMinutes * 2} minutes\nEstimated cost: $${estimatedCost}-${estimatedCost * 2}\n\nContinue?`)) {
+  if (!confirm(`This will extract events for ${people.length} artists (${totalSources} total sources).\n\nEstimated time: ${estimatedMinutes}-${estimatedMinutes * 2} minutes\nEstimated cost: $${estimatedCost}-${estimatedCost * 2}\n\nContinue?`)) {
     return;
   }
 
@@ -1282,10 +1353,10 @@ async function extractAllEvents() {
     eventsList.innerHTML = `
       <div class="loading" style="padding: 60px 20px;">
         <div class="spinner"></div>
-        <h3 style="margin: 20px 0;">🎭 Extracting Events for All People</h3>
+        <h3 style="margin: 20px 0;">🎭 Extracting Events for All Artists</h3>
         <p style="color: #666; margin-bottom: 20px;">This may take ${estimatedMinutes}-${estimatedMinutes * 2} minutes</p>
         <div id="extractionProgress" style="color: #999; font-size: 0.9rem;">
-          <p>Processing person <span id="currentPersonNum">1</span> of ${people.length}...</p>
+          <p>Processing artist <span id="currentPersonNum">1</span> of ${people.length}...</p>
           <p id="currentPersonName" style="margin-top: 10px; font-weight: 600;"></p>
           <p id="extractionStats" style="margin-top: 20px; color: #666;"></p>
         </div>
@@ -1329,11 +1400,11 @@ async function extractAllEvents() {
     eventsList.innerHTML = `
       <div class="success-message" style="text-align: center; padding: 60px 20px;">
         <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
-        <h2>Extraction Complete for All People!</h2>
+        <h2>Extraction Complete for All Artists!</h2>
         <div style="margin: 30px 0; font-size: 1.2rem;">
           <p><strong>${totalSaved}</strong> events saved to review queue</p>
           <p style="color: #666; margin-top: 15px;">
-            Processed ${people.length} people<br>
+            Processed ${people.length} artists<br>
             Found ${totalExtracted} event candidates
           </p>
         </div>
@@ -1488,7 +1559,7 @@ async function runRegressionTest(personId) {
         ` : ''}
 
         <div style="margin-top: 40px; display: flex; gap: 15px; justify-content: center;">
-          <button id="backToPersonBtn" class="btn-secondary">← Back to Person</button>
+          <button id="backToPersonBtn" class="btn-secondary">← Back to Artist</button>
           <button id="reviewEventsBtn" class="btn-primary">Review ${data.database.new_events} New Events →</button>
         </div>
       </div>
@@ -1605,6 +1676,11 @@ function formatDateTimeForInput(dateString) {
 }
 
 // ==================== INITIALIZATION ====================
-showView('events');
-loadEvents();
+// Honor a #view hash on load (e.g. from a bookmark or a reload), defaulting to
+// events. Seed the entry with replaceState so the first Back press has a base.
+const initialView = ['events', 'reviewEvents', 'people'].includes(location.hash.slice(1))
+  ? location.hash.slice(1)
+  : 'events';
+history.replaceState({ view: initialView }, '', '#' + initialView);
+restoreView({ view: initialView });
 loadPeopleForDropdown();

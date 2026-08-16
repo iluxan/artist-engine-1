@@ -1,13 +1,15 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const fs = require('fs');
 const db = require('./db');
 require('dotenv').config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
 });
+
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
 
 /**
  * Validate event date is sane (future date, not too far, not countdown)
@@ -85,23 +87,20 @@ Answer with ONLY "YES" or "NO" - nothing else.
 If the page actually describes this specific event, answer YES.
 If the page is just a homepage, countdown, or doesn't match, answer NO.`;
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    const message = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 10,
+      temperature: 0.1,
+      system: 'You verify if webpages match event details. Answer only YES or NO.',
       messages: [
-        {
-          role: 'system',
-          content: 'You verify if webpages match event details. Answer only YES or NO.'
-        },
         {
           role: 'user',
           content: prompt
         }
-      ],
-      temperature: 0.1,
-      max_tokens: 10
+      ]
     });
 
-    const answer = completion.choices[0].message.content.trim().toUpperCase();
+    const answer = (message.content.find(b => b.type === 'text')?.text || '').trim().toUpperCase();
     return answer === 'YES';
   } catch (error) {
     console.error(`   Error validating content: ${error.message}`);
@@ -356,23 +355,20 @@ Return ONLY valid JSON array:
 
 If NO events are found, return: []`;
 
-      const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      const message = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 1000,
+        temperature: 0.2,
+        system: 'You are an expert at extracting event information from text. You identify book signings, conventions, talks, readings, book releases, online events, and any public appearances. Return only valid JSON arrays.',
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at extracting event information from text. You identify book signings, conventions, talks, readings, book releases, online events, and any public appearances. Return only valid JSON arrays.'
-          },
           {
             role: 'user',
             content: prompt
           }
-        ],
-        temperature: 0.2,
-        max_tokens: 1000
+        ]
       });
 
-      const responseText = completion.choices[0].message.content.trim();
+      const responseText = (message.content.find(b => b.type === 'text')?.text || '').trim();
 
       // Extract JSON array from response
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);

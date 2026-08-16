@@ -1,14 +1,17 @@
 require('dotenv').config();
-const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
 });
 
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
+// Discovery uses live web search, which benefits from a stronger model + the
+// dynamic-filtering web_search tool (requires Sonnet 4.6+/Opus 4.6+).
+const SEARCH_MODEL = process.env.ANTHROPIC_SEARCH_MODEL || 'claude-sonnet-5';
 
 /**
  * Main function: Discover sources for a person using AI
@@ -101,23 +104,34 @@ Confidence must be one of: high, medium, low
 Return ONLY the JSON array, no other text.`;
 
   try {
-    const response = await openai.responses.create({
-      model: MODEL,
-      input: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      tools: [
-        { type: 'web_search_preview' }
-      ],
-      temperature: 0.3,
-      max_output_tokens: 2000
+    const tools = [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }];
+    let messages = [{ role: 'user', content: prompt }];
+
+    let response = await anthropic.messages.create({
+      model: SEARCH_MODEL,
+      max_tokens: 2000,
+      tools,
+      messages
     });
 
-    // Extract text from Responses API structure
-    const content = response.output[0].content[0].text.trim();
+    // Server-side web search runs a tool loop; resume if it pauses mid-turn.
+    let guard = 0;
+    while (response.stop_reason === 'pause_turn' && guard++ < 5) {
+      messages.push({ role: 'assistant', content: response.content });
+      response = await anthropic.messages.create({
+        model: SEARCH_MODEL,
+        max_tokens: 2000,
+        tools,
+        messages
+      });
+    }
+
+    // Concatenate the model's text blocks (search results arrive as separate blocks)
+    const content = response.content
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('\n')
+      .trim();
 
     // Parse JSON response
     const jsonMatch = content.match(/\[[\s\S]*\]/);
@@ -204,23 +218,20 @@ Confidence score should be 0-100.
 Return ONLY the JSON object, no other text.`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await anthropic.messages.create({
       model: MODEL,
+      max_tokens: 500,
+      temperature: 0.2,
+      system: 'You are analyzing webpage content to verify if it belongs to the correct person and posts event information. Always return valid JSON.',
       messages: [
-        {
-          role: 'system',
-          content: 'You are analyzing webpage content to verify if it belongs to the correct person and posts event information. Always return valid JSON.'
-        },
         {
           role: 'user',
           content: prompt
         }
-      ],
-      temperature: 0.2,
-      max_tokens: 500
+      ]
     });
 
-    const content = response.choices[0].message.content.trim();
+    const content = (response.content.find(b => b.type === 'text')?.text || '').trim();
 
     // Parse JSON response
     const jsonMatch = content.match(/\{[\s\S]*\}/);

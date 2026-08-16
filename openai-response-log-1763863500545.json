@@ -1,0 +1,90 @@
+{
+  "id": "resp_0042c376885fe3fe0069226bc1d6c4819fbf81afdcab6d0bfb",
+  "object": "response",
+  "created_at": 1763863489,
+  "status": "completed",
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 1500,
+  "max_tool_calls": null,
+  "model": "gpt-4o-2024-08-06",
+  "output": [
+    {
+      "id": "ws_0042c376885fe3fe0069226bc2d3b4819fade53031b8188784",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "query": "Cory Doctorow events 2025 2026 schedule"
+      }
+    },
+    {
+      "id": "msg_0042c376885fe3fe0069226bc3ad44819fa141f15674ed1ffd",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "[\n  {\n    \"title\": \"Cory Doctorow Discusses Ensh*ttification with Lina M. Khan\",\n    \"date\": \"2025-10-06\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Central Library, Dweck Center, Brooklyn, NY\",\n    \"url\": \"https://www.bklynlibrary.org/calendar/cory-doctorow-discusses-central-library-dweck-20251006-0700pm\",\n    \"description\": \"Cory Doctorow discusses his book 'Ensh*ttification' with Lina M. Khan, exploring the decline of the internet and potential solutions.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at The Brattle Theatre\",\n    \"date\": \"2025-10-07\",\n    \"time\": \"6:00 PM\",\n    \"location\": \"The Brattle Theatre, Cambridge, MA\",\n    \"url\": \"https://allevents.in/cambridge/cory-doctorow-at-the-brattle-theatre/100001591235180259\",\n    \"description\": \"Cory Doctorow presents 'Enshittification: Why Everything Suddenly Got Worse and What to Do About It' in conversation with Randall Munroe.\"\n  },\n  {\n    \"title\": \"Cory Doctorow with Jenny Odell / Enshittification\",\n    \"date\": \"2025-10-20\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Public Works, San Francisco, CA\",\n    \"url\": \"https://www.eff.org/event/cory-doctorow-enshittification-oct-20\",\n    \"description\": \"Cory Doctorow discusses his new book 'Enshittification' with Jenny Odell, author of 'How To Do Nothing'.\"\n  },\n  {\n    \"title\": \"Cory Doctorow with Charlie Jane Anders\",\n    \"date\": \"2025-02-17\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Kepler's Books, Menlo Park, CA\",\n    \"url\": \"https://www.keplers.org/upcoming-events-internal/cory-doctorow\",\n    \"description\": \"Cory Doctorow discusses his new thriller 'The Bezzle' with author Charlie Jane Anders.\"\n  },\n  {\n    \"title\": \"Radicalized: Q&A with author Cory Doctorow\",\n    \"date\": \"2025-09-16\",\n    \"time\": \"5:00 PM\",\n    \"location\": \"Milstein Hall, Milstein Auditorium, Ithaca, NY\",\n    \"url\": \"https://events.cornell.edu/event/radicalized-qa-with-author-cory-doctorow\",\n    \"description\": \"Cory Doctorow participates in a moderated Q&A about his collection of stories 'Radicalized'.\"\n  },\n  {\n    \"title\": \"Wordfest Presents Cory Doctorow\",\n    \"date\": \"2025-05-03\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Memorial Park Library, Calgary, AB\",\n    \"url\": \"https://wordfest.com/2024/event/wordfest-presents-cory-doctorow-2/\",\n    \"description\": \"Cory Doctorow discusses his new thriller 'The Bezzle' in conversation with Wordfest's Creative Ringleader Shelley Youngblut.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Politics & Prose\",\n    \"date\": \"2025-10-08\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Politics & Prose at the Wharf, Washington, DC\",\n    \"url\": \"https://politics-prose.com/cory-doctorow-10825\",\n    \"description\": \"Cory Doctorow in conversation with former CFPB chair and FTC commissioner Rohit Chopra.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Powell's City of Books\",\n    \"date\": \"2025-10-21\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Powell's City of Books, Portland, OR\",\n    \"url\": \"https://www.powells.com/events/cory-doctorow-10-21-25\",\n    \"description\": \"Cory Doctorow discusses his book 'Enshittification' at Powell's City of Books.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Seattle Public Library\",\n    \"date\": \"2025-10-22\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Seattle Public Library, Seattle, WA\",\n    \"url\": \"https://www.spl.org/programs-and-services/authors-and-books/authors-and-books-calendar?trumbaEmbed=view%3Devent%26eventid%3D188210978\",\n    \"description\": \"Cory Doctorow in conversation with Ed Zitron of 'Where’s Your Ed At' at the Seattle Public Library.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Vancouver Writers Festival\",\n    \"date\": \"2025-10-23\",\n    \"time\": \"5:30 PM\",\n    \"location\": \"Vancouver Writers Festival, Vancouver, BC\",\n    \"url\": \"https://www.showpass.com/2025-festival-39/\",\n    \"description\": \"Cory Doctorow in conversation with David Moscrop at the Vancouver Writers Festival.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Ottawa Writers Festival\",\n    \"date\": \"2025-10-25\",\n    \"time\": \"8:00 PM\",\n    \"location\": \"Ottawa Writers Festival, Ottawa, ON\",\n    \"url\": \"https://writersfestival.org/events/fall-2025/enshittification\",\n    \"description\": \"Cory Doctorow discusses his book 'Enshittification' at the Ottawa Writers Festival.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Type Books\",\n    \"date\": \"2025-10-27\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Type Books in the Junction, Toronto, ON\",\n    \"url\": \"https://www.instagram.com/p/DO81_1VDngu/?img_index=1\",\n    \"description\": \"Cory Doctorow discusses his book 'Enshittification' with Dan Werb at Type Books.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Columbia University\",\n    \"date\": \"2025-10-29\",\n    \"time\": \"TBD\",\n    \"location\": \"The Forum, Columbia University, New York, NY\",\n    \"url\": \"https://worldprojects.columbia.edu/our-work/research-and-engagement/democratic-renewal/digital-governance\",\n    \"description\": \"Cory Doctorow delivers a keynote for the Columbia-Hertie Digital Governance for Democratic Renewal Conference.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Books & Books\",\n    \"date\": \"2025-11-05\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Books & Books, Miami, FL\",\n    "
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 0.2,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "search_context_size": "medium",
+      "user_location": {
+        "type": "approximate",
+        "city": null,
+        "country": "US",
+        "region": null,
+        "timezone": null
+      }
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 538,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 1524,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 2062
+  },
+  "user": null,
+  "metadata": {},
+  "output_text": "[\n  {\n    \"title\": \"Cory Doctorow Discusses Ensh*ttification with Lina M. Khan\",\n    \"date\": \"2025-10-06\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Central Library, Dweck Center, Brooklyn, NY\",\n    \"url\": \"https://www.bklynlibrary.org/calendar/cory-doctorow-discusses-central-library-dweck-20251006-0700pm\",\n    \"description\": \"Cory Doctorow discusses his book 'Ensh*ttification' with Lina M. Khan, exploring the decline of the internet and potential solutions.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at The Brattle Theatre\",\n    \"date\": \"2025-10-07\",\n    \"time\": \"6:00 PM\",\n    \"location\": \"The Brattle Theatre, Cambridge, MA\",\n    \"url\": \"https://allevents.in/cambridge/cory-doctorow-at-the-brattle-theatre/100001591235180259\",\n    \"description\": \"Cory Doctorow presents 'Enshittification: Why Everything Suddenly Got Worse and What to Do About It' in conversation with Randall Munroe.\"\n  },\n  {\n    \"title\": \"Cory Doctorow with Jenny Odell / Enshittification\",\n    \"date\": \"2025-10-20\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Public Works, San Francisco, CA\",\n    \"url\": \"https://www.eff.org/event/cory-doctorow-enshittification-oct-20\",\n    \"description\": \"Cory Doctorow discusses his new book 'Enshittification' with Jenny Odell, author of 'How To Do Nothing'.\"\n  },\n  {\n    \"title\": \"Cory Doctorow with Charlie Jane Anders\",\n    \"date\": \"2025-02-17\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Kepler's Books, Menlo Park, CA\",\n    \"url\": \"https://www.keplers.org/upcoming-events-internal/cory-doctorow\",\n    \"description\": \"Cory Doctorow discusses his new thriller 'The Bezzle' with author Charlie Jane Anders.\"\n  },\n  {\n    \"title\": \"Radicalized: Q&A with author Cory Doctorow\",\n    \"date\": \"2025-09-16\",\n    \"time\": \"5:00 PM\",\n    \"location\": \"Milstein Hall, Milstein Auditorium, Ithaca, NY\",\n    \"url\": \"https://events.cornell.edu/event/radicalized-qa-with-author-cory-doctorow\",\n    \"description\": \"Cory Doctorow participates in a moderated Q&A about his collection of stories 'Radicalized'.\"\n  },\n  {\n    \"title\": \"Wordfest Presents Cory Doctorow\",\n    \"date\": \"2025-05-03\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Memorial Park Library, Calgary, AB\",\n    \"url\": \"https://wordfest.com/2024/event/wordfest-presents-cory-doctorow-2/\",\n    \"description\": \"Cory Doctorow discusses his new thriller 'The Bezzle' in conversation with Wordfest's Creative Ringleader Shelley Youngblut.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Politics & Prose\",\n    \"date\": \"2025-10-08\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Politics & Prose at the Wharf, Washington, DC\",\n    \"url\": \"https://politics-prose.com/cory-doctorow-10825\",\n    \"description\": \"Cory Doctorow in conversation with former CFPB chair and FTC commissioner Rohit Chopra.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Powell's City of Books\",\n    \"date\": \"2025-10-21\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Powell's City of Books, Portland, OR\",\n    \"url\": \"https://www.powells.com/events/cory-doctorow-10-21-25\",\n    \"description\": \"Cory Doctorow discusses his book 'Enshittification' at Powell's City of Books.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Seattle Public Library\",\n    \"date\": \"2025-10-22\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Seattle Public Library, Seattle, WA\",\n    \"url\": \"https://www.spl.org/programs-and-services/authors-and-books/authors-and-books-calendar?trumbaEmbed=view%3Devent%26eventid%3D188210978\",\n    \"description\": \"Cory Doctorow in conversation with Ed Zitron of 'Where’s Your Ed At' at the Seattle Public Library.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Vancouver Writers Festival\",\n    \"date\": \"2025-10-23\",\n    \"time\": \"5:30 PM\",\n    \"location\": \"Vancouver Writers Festival, Vancouver, BC\",\n    \"url\": \"https://www.showpass.com/2025-festival-39/\",\n    \"description\": \"Cory Doctorow in conversation with David Moscrop at the Vancouver Writers Festival.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Ottawa Writers Festival\",\n    \"date\": \"2025-10-25\",\n    \"time\": \"8:00 PM\",\n    \"location\": \"Ottawa Writers Festival, Ottawa, ON\",\n    \"url\": \"https://writersfestival.org/events/fall-2025/enshittification\",\n    \"description\": \"Cory Doctorow discusses his book 'Enshittification' at the Ottawa Writers Festival.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Type Books\",\n    \"date\": \"2025-10-27\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Type Books in the Junction, Toronto, ON\",\n    \"url\": \"https://www.instagram.com/p/DO81_1VDngu/?img_index=1\",\n    \"description\": \"Cory Doctorow discusses his book 'Enshittification' with Dan Werb at Type Books.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Columbia University\",\n    \"date\": \"2025-10-29\",\n    \"time\": \"TBD\",\n    \"location\": \"The Forum, Columbia University, New York, NY\",\n    \"url\": \"https://worldprojects.columbia.edu/our-work/research-and-engagement/democratic-renewal/digital-governance\",\n    \"description\": \"Cory Doctorow delivers a keynote for the Columbia-Hertie Digital Governance for Democratic Renewal Conference.\"\n  },\n  {\n    \"title\": \"Cory Doctorow at Books & Books\",\n    \"date\": \"2025-11-05\",\n    \"time\": \"7:00 PM\",\n    \"location\": \"Books & Books, Miami, FL\",\n    "
+}

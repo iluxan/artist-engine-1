@@ -1,11 +1,13 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 require('dotenv').config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
 });
+
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
 
 /**
  * Analyze a source URL to determine posting frequency
@@ -56,23 +58,20 @@ Return ONLY valid JSON in this exact format:
   "analysis": "brief description"
 }`;
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    const message = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 500,
+      temperature: 0.3,
+      system: 'You are an expert at analyzing web pages to determine posting frequency and activity. Always return valid JSON.',
       messages: [
-        {
-          role: 'system',
-          content: 'You are an expert at analyzing web pages to determine posting frequency and activity. Always return valid JSON.'
-        },
         {
           role: 'user',
           content: prompt
         }
-      ],
-      temperature: 0.3,
-      max_tokens: 500
+      ]
     });
 
-    const responseText = completion.choices[0].message.content.trim();
+    const responseText = (message.content.find(b => b.type === 'text')?.text || '').trim();
     console.log(`   AI Response: ${responseText}`);
 
     // Extract JSON from response

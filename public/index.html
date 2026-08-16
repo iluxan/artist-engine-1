@@ -10,11 +10,11 @@
   <div class="container">
     <header>
       <h1>Event Discovery Agent</h1>
-      <p class="subtitle">Find events from people you care about</p>
+      <p class="subtitle">Find events from artists you care about</p>
       <nav class="main-nav">
         <a href="#" data-page="events" class="nav-link">Events</a>
         <a href="#" data-page="reviewEvents" class="nav-link">Review Events <span id="reviewQueueBadge" class="badge hidden">0</span></a>
-        <a href="#" data-page="people" class="nav-link">My People</a>
+        <a href="#" data-page="people" class="nav-link">Artists of Interest</a>
       </nav>
     </header>
 
@@ -31,9 +31,9 @@
 
         <div class="filter-bar">
           <div class="filter-group">
-            <label for="personFilter">Filter by person:</label>
+            <label for="personFilter">Filter by artist:</label>
             <select id="personFilter">
-              <option value="">All People</option>
+              <option value="">All Artists</option>
             </select>
           </div>
           <div class="filter-group">
@@ -57,12 +57,12 @@
           <div style="text-align: center; padding: 40px 20px;">
             <div style="font-size: 3rem; margin-bottom: 20px;">📅</div>
             <h3>No Events Yet</h3>
-            <p style="color: #666; margin: 20px 0;">Extract events from your people's sources to see them here.</p>
+            <p style="color: #666; margin: 20px 0;">Extract events from your artists' sources to see them here.</p>
             <div style="margin-top: 30px;">
-              <button id="goToPeopleFromEvents" class="btn-primary">View My People →</button>
+              <button id="goToPeopleFromEvents" class="btn-primary">View Artists →</button>
             </div>
             <p style="color: #999; font-size: 0.9rem; margin-top: 20px;">
-              Go to a person's page and click "🎭 Extract Events" to find their upcoming events.
+              Go to an artist's page and click "🎭 Extract Events" to find their upcoming events.
             </p>
           </div>
         </div>
@@ -104,9 +104,9 @@
           <h2 id="eventFormTitle">Add New Event</h2>
           <form id="eventForm">
             <div class="form-group">
-              <label for="eventPerson">Person *</label>
+              <label for="eventPerson">Artist *</label>
               <select id="eventPerson" required>
-                <option value="">Select a person...</option>
+                <option value="">Select an artist...</option>
               </select>
             </div>
 
@@ -178,26 +178,25 @@
       <!-- Saved People View -->
       <section id="peopleView" class="view-section">
         <div class="section-header">
-          <h2>Saved People</h2>
-          <button id="addPersonBtn" class="btn-primary">Add Person</button>
+          <button id="addPersonBtn" class="btn-primary">Add Artist</button>
         </div>
 
         <div id="peopleList" class="people-list">
           <div class="loading">
             <div class="spinner"></div>
-            <p>Loading people...</p>
+            <p>Loading artists...</p>
           </div>
         </div>
 
         <div id="emptyState" class="empty-state hidden">
-          <p>No people saved yet. Click "Add Person" to get started!</p>
+          <p>No artists saved yet. Click "Add Artist" to get started!</p>
         </div>
       </section>
 
       <!-- Person Detail View -->
       <section id="personDetailView" class="view-section hidden">
         <div class="back-nav">
-          <button id="backToPeople" class="btn-text">← Back to People</button>
+          <button id="backToPeople" class="btn-text">← Back to Artists</button>
         </div>
 
         <div id="personDetail"></div>
@@ -210,7 +209,7 @@
         </div>
 
         <div class="form-container">
-          <h2 id="formTitle">Add New Person</h2>
+          <h2 id="formTitle">Add New Artist</h2>
           <form id="personForm">
             <div class="form-group">
               <label for="personName">Name *</label>
