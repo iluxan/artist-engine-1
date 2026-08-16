@@ -5,7 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "eval": "promptfoo eval -c evals/promptfooconfig.yaml",
+    "eval:view": "promptfoo view -y",
+    "eval:watch": "promptfoo eval -c evals/promptfooconfig.yaml --watch",
+    "postinstall": "node -e \"try{require('fs').symlinkSync('dist/drizzle','node_modules/promptfoo/drizzle','dir')}catch(e){}\""
   },
   "keywords": [
     "events",
@@ -22,5 +26,8 @@
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "openai": "^5.23.1"
+  },
+  "devDependencies": {
+    "promptfoo": "^0.122.0"
   }
 }

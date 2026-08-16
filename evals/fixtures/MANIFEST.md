@@ -1,0 +1,6 @@
+- `alex-edelman-tour.txt` — https://www.alexedelmantour.com/ — fetched 2026-08-16T04:02:49.012Z — 5398 chars
+- `cory-doctorow-edinburgh.txt` — https://www.edbookfest.co.uk/events/cory-doctorow-enshittification — fetched 2026-08-16T04:02:49.598Z — 3528 chars
+- `alex-edelman-bardavon.txt` — https://www.songkick.com/concerts/43351032-alex-edelman-at-bardavon-1869-opera-house — captured via browser fetch (Songkick blocks axios: 406) — 2026-08-16
+- `alex-edelman-songkick-calendar.txt` — https://www.songkick.com/artists/2550401-alex-edelman/calendar — captured via browser fetch (Songkick blocks axios: 406) — 2026-08-16
+- `cory-doctorow-edinburgh.txt` — https://www.edbookfest.co.uk/events/cory-doctorow-enshittification — fetched 2026-08-16T12:16:01.045Z — HTTP 200 — 6179 chars
+- `becky-chambers-powells.txt` — reconstructed X/Twitter announcement of the real event (Powell's Books at Cedar Hills Crossing, 2026-10-18; details cross-checked via Eventbrite/Vivid Seats). Powell's + X block scraping, so hand-built to reproduce the "found on X, tracker-laden event link" scenario — 2026-08-16

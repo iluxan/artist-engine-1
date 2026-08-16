@@ -273,7 +273,8 @@ app.post('/api/people/:id/extract-events', async (req, res) => {
           source.url,
           source.type,
           person.id,
-          source.id
+          source.id,
+          person.name
         );
 
         totalExtracted += results.extracted || 0;
@@ -380,6 +381,18 @@ app.post('/api/events/unverified/:id/approve', (req, res) => {
   } catch (error) {
     console.error('Error approving event:', error);
     res.status(500).json({ error: 'Failed to approve event: ' + error.message });
+  }
+});
+
+// Remove ALL unverified events (clear the review queue)
+app.delete('/api/events/unverified', (req, res) => {
+  try {
+    const deleted = db.deleteAllUnverifiedEvents();
+    console.log(`🗑  Cleared review queue: ${deleted} event(s) removed`);
+    res.json({ success: true, deleted });
+  } catch (error) {
+    console.error('Error clearing review queue:', error);
+    res.status(500).json({ error: 'Failed to clear review queue' });
   }
 });
 
@@ -544,7 +557,8 @@ app.post('/api/test/extract-regression/:id', async (req, res) => {
           source.url,
           source.type,
           person.id,
-          source.id
+          source.id,
+          person.name
         );
 
         totalExtracted += results.extracted || 0;

@@ -1,0 +1,63 @@
+# Golden dataset — real snapshotted pages + hand-labeled expected events.
+# Each case: vars.person + vars.content (frozen fixture) + vars.expected (answer key).
+# score.js compares extracted events to vars.expected (date-anchored set match).
+
+- description: "Cory Doctorow @ Edinburgh Book Fest — 2 real events, must reject 5 other authors' events"
+  vars:
+    person: "Cory Doctorow"
+    content: file://fixtures/cory-doctorow-edinburgh.txt
+    expected:
+      - { title: "Cory Doctorow: Enshittification", date: "2026-08-16", venue: "Venue T", city: "Edinburgh" }
+      - { title: "The Front List: Cory Doctorow and Jimmy Wales", date: "2026-08-17", venue: null, city: "Edinburgh", url: "https://www.edbookfest.co.uk/events/the-front-list-cory-doctorow-and-jimmy-wales" }
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://score.js
+
+- description: "Alex Edelman fan SEO page — pure hype, NO concrete events, must return []"
+  vars:
+    person: "Alex Edelman"
+    content: file://fixtures/alex-edelman-tour.txt
+    expected: []
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://score.js
+
+- description: "Alex Edelman @ Bardavon (Songkick) — 1 clean concrete event"
+  vars:
+    person: "Alex Edelman"
+    content: file://fixtures/alex-edelman-bardavon.txt
+    expected:
+      - { title: "Alex Edelman", date: "2026-09-18", venue: "Bardavon 1869 Opera House", city: "Poughkeepsie" }
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://score.js
+
+- description: "Powell's X post — tracked person (James S.A. Corey / Ty Franck) is a GUEST; strip URL tracker"
+  vars:
+    person: "James S.A. Corey"
+    content: file://fixtures/becky-chambers-powells.txt
+    expected:
+      - { title: "Becky Chambers in conversation with Ty Franck", date: "2026-10-18", venue: "Powell's Books at Cedar Hills Crossing", city: "Beaverton", url: "https://www.powells.com/events/becky-chambers-9780062936066" }
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://score.js
+
+- description: "Alex Edelman Songkick calendar — 6 dates, must catch ALL (recall), invent none for 'fans also track'"
+  vars:
+    person: "Alex Edelman"
+    content: file://fixtures/alex-edelman-songkick-calendar.txt
+    expected:
+      - { title: "Alex Edelman", date: "2026-09-18", venue: "Bardavon 1869 Opera House", city: "Poughkeepsie" }
+      - { title: "Alex Edelman", date: "2026-10-22", venue: "Winter Garden Theatre", city: "Toronto" }
+      - { title: "Alex Edelman", date: "2026-11-07", venue: "TD Garden", city: "Boston" }
+      - { title: "Alex Edelman", date: "2026-11-08", venue: "Wells Hall at The Parker", city: "Fort Lauderdale" }
+      - { title: "Alex Edelman", date: "2026-11-21", venue: "Carolina Theatre", city: "Durham" }
+      - { title: "Alex Edelman", date: "2026-11-22", venue: "The Fillmore Charlotte", city: "Charlotte" }
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://score.js

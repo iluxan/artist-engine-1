@@ -453,6 +453,13 @@ async function loadUnverifiedEvents() {
     // Update badge count
     updateReviewQueueBadge(data.total);
 
+    // Remove All button: show only when there's something to remove
+    const removeAllBtn = document.getElementById('removeAllEventsBtn');
+    if (removeAllBtn) {
+      removeAllBtn.onclick = () => removeAllEvents(data.total);
+      removeAllBtn.classList.toggle('hidden', data.events.length === 0);
+    }
+
     if (data.events.length === 0) {
       eventsList.innerHTML = '';
       emptyState.classList.remove('hidden');
@@ -539,7 +546,16 @@ function createUnverifiedEventCard(event) {
     ${event.url ? `
       <div style="margin: 15px 0;">
         <a href="${event.url}" target="_blank" style="color: #667eea; text-decoration: none;">
-          🔗 ${event.url}
+          🔗 Event page: ${event.url}
+        </a>
+      </div>
+    ` : ''}
+
+    ${event.original_post_url ? `
+      <div style="margin: 10px 0; font-size: 0.9em; color: #888;">
+        📄 Found on:
+        <a href="${event.original_post_url}" target="_blank" style="color: #888;">
+          ${event.original_post_url}
         </a>
       </div>
     ` : ''}
@@ -626,6 +642,30 @@ async function rejectEvent(eventId) {
   } catch (error) {
     console.error('Error rejecting event:', error);
     alert('Failed to reject event: ' + error.message);
+  }
+}
+
+async function removeAllEvents(count) {
+  if (!confirm(`Remove ALL ${count} event(s) from the review queue? This permanently deletes them and cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/events/unverified', {
+      method: 'DELETE'
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to remove all events');
+    }
+
+    // Reload unverified events list (will hide the button when empty)
+    loadUnverifiedEvents();
+
+  } catch (error) {
+    console.error('Error removing all events:', error);
+    alert('Failed to remove all events: ' + error.message);
   }
 }
 

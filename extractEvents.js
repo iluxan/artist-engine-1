@@ -3,13 +3,15 @@ const cheerio = require('cheerio');
 const Anthropic = require('@anthropic-ai/sdk');
 const fs = require('fs');
 const db = require('./db');
+const { fetchAndClean } = require('./scrape');
+const { extractEventsFromContent, MODEL } = require('./promptTemplate');
+const { logExtractionRun } = require('./extractionLog');
+const { stripTracking } = require('./urlUtils');
 require('dotenv').config();
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 });
-
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
 
 /**
  * Validate event date is sane (future date, not too far, not countdown)
@@ -184,59 +186,94 @@ async function verifyEvent(event) {
 }
 
 /**
- * Extract events from a source URL by fetching recent posts
+ * Extract events from a source URL: scrape it (same path as the eval fixtures),
+ * run the SHARED person-scoped prompt, verify each event, save to the review queue,
+ * and append the whole run to the structured extraction log.
+ *
  * @param {string} url - Source URL to scrape
  * @param {string} sourceType - Type of source (blog, twitter, etc.)
  * @param {number} personId - Person ID
  * @param {number} sourceId - Source ID
+ * @param {string} personName - Name of the tracked person (scopes extraction)
  * @returns {Object} Extraction results summary
  */
-async function extractEventsFromSource(url, sourceType, personId, sourceId) {
-  console.log(`\n📰 Extracting events from: ${url}`);
+async function extractEventsFromSource(url, sourceType, personId, sourceId, personName) {
+  console.log(`\n📰 Extracting events from: ${url}  (tracking: ${personName || 'unknown'})`);
 
+  const results = { extracted: 0, verified: 0, saved: 0, failed: 0 };
+
+  // Step 1: Scrape (shared with evals/fetch-fixture via scrape.js)
+  let scrape;
   try {
-    // Fetch the page content
-    const response = await axios.get(url, {
-      timeout: 15000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+    scrape = await fetchAndClean(url);
+    console.log(`   ✓ Scraped ${scrape.content.length} chars (HTTP ${scrape.status})`);
+  } catch (error) {
+    console.error(`   ❌ Scrape failed for ${url}: ${error.message} (status ${error.status})`);
+    logExtractionRun({
+      person: personName, personId, sourceId, sourceType, url,
+      httpStatus: error.status, content: '', model: MODEL, extracted: [], saved: 0,
+      error: `scrape: ${error.message}`,
     });
+    results.failed = 1;
+    return results;
+  }
 
-    const $ = cheerio.load(response.data);
+  // Step 2: Extract with the shared, person-scoped prompt
+  let events = [];
+  let extractError = null;
+  try {
+    events = await extractEventsFromContent(scrape.content, { person: personName });
+    console.log(`   🤖 Extracted ${events.length} candidate event(s)`);
+  } catch (error) {
+    extractError = error.message;
+    console.error(`   ❌ Extraction failed: ${error.message}`);
+  }
+  results.extracted = events.length;
 
-    // Extract text content and HTML structure
-    const pageText = $('body').text().replace(/\s+/g, ' ').substring(0, 15000);
+  // Step 3: Verify each candidate and save to the review queue (unverified_events)
+  for (const event of events) {
+    const eventData = {
+      person_id: personId,
+      source_id: sourceId,
+      title: event.title,
+      date: event.date || null,
+      // review-queue schema uses a single `location`; combine venue + city
+      location: [event.venue, event.city].filter(Boolean).join(', ') || null,
+      // event_url: the event's OWN details page from the content (tracker-stripped),
+      // or null. We deliberately do NOT fall back to the source URL here — that
+      // conflates "the event page" with "where we found it".
+      url: stripTracking(event.url),
+      registration_url: event.registration_url || null,
+      // source_url: where we found it (the page/post we scraped). Always known.
+      original_post_url: url,
+      original_post_text: scrape.content.substring(0, 5000),
+    };
 
-    // Try to extract individual posts/articles
-    const posts = extractPosts($, url);
-
-    console.log(`   Found ${posts.length} potential posts on the page`);
-
-    if (posts.length === 0) {
-      // If we can't find individual posts, treat the whole page as one content block
-      posts.push({
-        title: $('title').text() || 'Unknown',
-        url: url,
-        text: pageText.substring(0, 8000),
-        date: null
-      });
+    let verification;
+    try {
+      verification = await verifyEvent(eventData);
+    } catch (error) {
+      verification = { httpCheck: false, contentValidation: false, dateSanity: false, registrationUrl: false, errors: [error.message] };
     }
 
-    // Use AI to analyze posts for events (now saves to DB)
-    const results = await analyzePostsForEvents(posts, personId, sourceId, sourceType);
-
-    return results;
-
-  } catch (error) {
-    console.error(`   ❌ Error extracting from ${url}:`, error.message);
-    return {
-      extracted: 0,
-      verified: 0,
-      saved: 0,
-      failed: 1
-    };
+    try {
+      db.createUnverifiedEvent(eventData, verification);
+      results.saved++;
+      console.log(`   💾 Saved to review queue: ${event.title}`);
+    } catch (error) {
+      console.error(`   ❌ Error saving event: ${error.message}`);
+      results.failed++;
+    }
   }
+
+  // Step 4: Structured running log (for building evals from real runs)
+  logExtractionRun({
+    person: personName, personId, sourceId, sourceType, url,
+    httpStatus: scrape.status, content: scrape.content, model: MODEL,
+    extracted: events, saved: results.saved, error: extractError,
+  });
+
+  return results;
 }
 
 /**
@@ -462,7 +499,7 @@ async function extractEventsForAuthor(authorName) {
     return;
   }
 
-  const allEvents = [];
+  const totals = { extracted: 0, saved: 0, failed: 0 };
 
   // Process each source
   for (let i = 0; i < sources.length; i++) {
@@ -470,16 +507,19 @@ async function extractEventsForAuthor(authorName) {
     console.log(`\n[${ i + 1}/${sources.length}] Processing: ${source.type} - ${source.url}`);
     console.log('-'.repeat(70));
 
-    const events = await extractEventsFromSource(
+    const results = await extractEventsFromSource(
       source.url,
       source.type,
       person.id,
-      source.id
+      source.id,
+      person.name
     );
 
-    allEvents.push(...events);
+    totals.extracted += results.extracted || 0;
+    totals.saved += results.saved || 0;
+    totals.failed += results.failed || 0;
 
-    console.log(`   📊 Extracted ${events.length} event(s) from this source`);
+    console.log(`   📊 Extracted ${results.extracted} event(s), saved ${results.saved} to review queue`);
 
     // Delay between sources to avoid rate limiting
     if (i < sources.length - 1) {
@@ -488,29 +528,18 @@ async function extractEventsForAuthor(authorName) {
     }
   }
 
-  // Save results to JSON file
-  const outputFile = `events-${person.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.json`;
-  const output = {
-    author: person.name,
-    author_id: person.id,
-    extraction_date: new Date().toISOString(),
-    total_sources_analyzed: sources.length,
-    total_events_found: allEvents.length,
-    events: allEvents
-  };
-
-  fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
-
   console.log('\n' + '='.repeat(70));
   console.log(`\n✅ EXTRACTION COMPLETE!`);
   console.log(`\n📊 Summary:`);
-  console.log(`   - Author: ${person.name}`);
+  console.log(`   - Person: ${person.name}`);
   console.log(`   - Sources analyzed: ${sources.length}`);
-  console.log(`   - Events found: ${allEvents.length}`);
-  console.log(`   - Output file: ${outputFile}`);
+  console.log(`   - Events extracted: ${totals.extracted}`);
+  console.log(`   - Saved to review queue: ${totals.saved}`);
+  console.log(`   - Failed: ${totals.failed}`);
+  console.log(`   - Structured log: logs/extractions.jsonl`);
   console.log('\n' + '='.repeat(70));
 
-  return output;
+  return { person: person.name, sources: sources.length, ...totals };
 }
 
 // Run the script

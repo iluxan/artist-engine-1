@@ -547,6 +547,11 @@ function deleteUnverifiedEvent(id) {
   return result.changes > 0;
 }
 
+function deleteAllUnverifiedEvents() {
+  const result = db.prepare('DELETE FROM unverified_events').run();
+  return result.changes;
+}
+
 function approveEvent(unverifiedEventId) {
   const unverifiedEvent = getUnverifiedEventById(unverifiedEventId);
   if (!unverifiedEvent) {
@@ -643,6 +648,7 @@ module.exports = {
   getUnverifiedEventById,
   getUnverifiedEventsByPersonId,
   deleteUnverifiedEvent,
+  deleteAllUnverifiedEvents,
   approveEvent,
   deleteExpiredEvents
 };

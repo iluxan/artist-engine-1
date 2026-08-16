@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "Event extraction — golden set (real snapshotted pages)"
+
+prompts:
+  - file://../prompts/event-extraction.txt
+
+providers:
+  - id: anthropic:messages:claude-haiku-4-5
+    config:
+      temperature: 0.2
+      max_tokens: 1500
+
+# Normalize output (strip markdown fences) before any assertion runs.
+defaultTest:
+  options:
+    transform: file://strip-fences.js
+
+# Test cases (inputs + hand-labeled expected events) live in golden/cases.yaml.
+# Scoring is done by score.js (precision / recall / exact-set-match).
+tests: file://golden/cases.yaml
