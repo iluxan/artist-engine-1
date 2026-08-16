@@ -4,3 +4,8 @@
 - `alex-edelman-songkick-calendar.txt` — https://www.songkick.com/artists/2550401-alex-edelman/calendar — captured via browser fetch (Songkick blocks axios: 406) — 2026-08-16
 - `cory-doctorow-edinburgh.txt` — https://www.edbookfest.co.uk/events/cory-doctorow-enshittification — fetched 2026-08-16T12:16:01.045Z — HTTP 200 — 6179 chars
 - `becky-chambers-powells.txt` — reconstructed X/Twitter announcement of the real event (Powell's Books at Cedar Hills Crossing, 2026-10-18; details cross-checked via Eventbrite/Vivid Seats). Powell's + X block scraping, so hand-built to reproduce the "found on X, tracker-laden event link" scenario — 2026-08-16
+- `jsac-twitter-fullpage.txt` — reconstructed from x.com/JamesSACorey (full page variant): the real Becky Chambers/Ty Franck tweet where the full eventbrite URL lives in the link href — tests recovering it from the annotated link — 2026-08-16
+- `jsac-twitter-loginwall.txt` — reconstructed from x.com/JamesSACorey (login-wall shell variant): only the truncated display link "eventbrite.com/e/becky-chambe…" is present — tests preferring null over a broken URL — 2026-08-16
+- `knights-carnegie.txt` — https://www.theknightsnyc.com/concert-series-2 — fetched 2026-08-16T18:11:47.699Z — HTTP 200 — 15000 chars
+- `knights-carnegie.txt` — https://www.theknightsnyc.com/performances-all/the-knights-with-emanuelax-carnegie-oct26 — fetched 2026-08-16T18:13:01.234Z — HTTP 200 — 6643 chars
+- `knights-carnegie.txt` — https://www.theknightsnyc.com/performances-all/the-knights-with-emanuelax-carnegie-oct26 — event page with a "Get tickets" box-office link; tests ticket_url extraction — 2026-08-16

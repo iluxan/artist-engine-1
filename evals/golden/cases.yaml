@@ -46,6 +46,39 @@
     - type: javascript
       value: file://score.js
 
+- description: "The Knights @ Carnegie (event page) — capture the 'Get tickets' link as ticket_url"
+  vars:
+    person: "The Knights"
+    content: file://fixtures/knights-carnegie.txt
+    expected:
+      - { title: "The Knights with Emanuel Ax at Carnegie Hall", date: "2026-10-20", venue: "Carnegie Hall", city: null, ticket_url: "https://www.carnegiehall.org/Calendar/2026/10/20/The-Knights-0730PM" }
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://score.js
+
+- description: "X full page — full event URL is in the link href; extract it (not the truncated display text)"
+  vars:
+    person: "James S.A. Corey"
+    content: file://fixtures/jsac-twitter-fullpage.txt
+    expected:
+      - { title: "Becky Chambers in conversation with Ty Franck", date: "2026-10-18", venue: null, city: null, url: "https://www.eventbrite.com/e/becky-chambers-in-conversation-with-ty-franck-tickets-1991495720309" }
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://score.js
+
+- description: "X login-wall shell — only a TRUNCATED link is present; prefer null over a broken URL"
+  vars:
+    person: "James S.A. Corey"
+    content: file://fixtures/jsac-twitter-loginwall.txt
+    expected:
+      - { title: "Becky Chambers in conversation with Ty Franck", date: "2026-10-18", venue: null, city: null, url: null }
+  assert:
+    - type: is-json
+    - type: javascript
+      value: file://score.js
+
 - description: "Alex Edelman Songkick calendar — 6 dates, must catch ALL (recall), invent none for 'fans also track'"
   vars:
     person: "Alex Edelman"

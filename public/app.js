@@ -199,98 +199,53 @@ function createEventCard(event) {
   const card = document.createElement('div');
   card.className = 'event-card';
 
-  const header = document.createElement('div');
-  header.className = 'event-card-header';
+  // "Found on" = the specific page we scraped (raw_data.original_post_url),
+  // falling back to the source record URL.
+  let foundOn = event.source_url || null;
+  try {
+    const raw = event.raw_data ? JSON.parse(event.raw_data) : null;
+    if (raw && raw.original_post_url) foundOn = raw.original_post_url;
+  } catch (e) { /* ignore malformed raw_data */ }
 
-  const leftSection = document.createElement('div');
-  const title = document.createElement('div');
-  title.className = 'event-card-title';
-  title.textContent = event.title;
+  const dateStr = event.event_date ? formatEventDate(event.event_date) : null;
+  const isPast = event.event_date && new Date(event.event_date) < new Date();
+  const location = [event.venue, event.city, event.country].filter(Boolean).join(', ')
+    || event.location || null;
 
-  const person = document.createElement('div');
-  person.className = 'event-card-person';
-  person.textContent = event.person_name;
+  // Title is the clickable link to the event page (falls back to plain text).
+  const titleHtml = event.url
+    ? `<a href="${event.url}" target="_blank" class="event-card-title-link">${event.title}</a>`
+    : `<span class="event-card-title-link">${event.title}</span>`;
 
-  leftSection.appendChild(title);
-  leftSection.appendChild(person);
+  card.innerHTML = `
+    <div class="event-card-header">
+      <div class="event-card-title">${titleHtml}</div>
+      <span class="status-badge ${event.status}">${event.status}</span>
+    </div>
 
-  const rightSection = document.createElement('div');
-  if (event.event_date) {
-    const dateDiv = document.createElement('div');
-    dateDiv.className = 'event-card-date';
-    dateDiv.textContent = formatEventDate(event.event_date);
-    rightSection.appendChild(dateDiv);
-  }
+    <div class="event-card-meta">
+      ${dateStr ? `<span class="event-card-meta-item">📅 ${dateStr}${isPast ? '<span class="past-pill">event past</span>' : ''}</span>` : ''}
+      ${location ? `<span class="event-card-meta-item">📍 ${location}</span>` : ''}
+      <span class="event-card-meta-item">👤 ${event.person_name}</span>
+    </div>
 
-  const statusBadge = document.createElement('span');
-  statusBadge.className = `status-badge ${event.status}`;
-  statusBadge.textContent = event.status;
-  rightSection.appendChild(statusBadge);
+    ${event.url ? `
+      <div class="event-card-link">🔗 Event page:
+        <a href="${event.url}" target="_blank">${event.url}</a>
+      </div>` : ''}
+    ${foundOn ? `
+      <div class="event-card-link muted">📄 Found on:
+        <a href="${foundOn}" target="_blank">${foundOn}</a>
+      </div>` : ''}
 
-  header.appendChild(leftSection);
-  header.appendChild(rightSection);
+    <div class="event-card-footer">
+      <button class="btn-text" data-action="edit">Edit</button>
+      <button class="btn-text danger" data-action="delete">Delete</button>
+    </div>
+  `;
 
-  const body = document.createElement('div');
-  body.className = 'event-card-body';
-
-  if (event.description) {
-    const description = document.createElement('div');
-    description.className = 'event-card-description';
-    description.textContent = event.description;
-    body.appendChild(description);
-  }
-
-  const meta = document.createElement('div');
-  meta.className = 'event-card-meta';
-
-  if (event.venue || event.city) {
-    const locationDiv = document.createElement('div');
-    locationDiv.className = 'event-card-meta-item';
-    const parts = [];
-    if (event.venue) parts.push(event.venue);
-    if (event.city) parts.push(event.city);
-    if (event.country) parts.push(event.country);
-    locationDiv.innerHTML = `📍 ${parts.join(', ')}`;
-    meta.appendChild(locationDiv);
-  }
-
-  if (event.source_url) {
-    const sourceDiv = document.createElement('div');
-    sourceDiv.className = 'event-card-meta-item';
-    sourceDiv.innerHTML = `🔗 <a href="${event.source_url}" target="_blank">Source</a>`;
-    meta.appendChild(sourceDiv);
-  }
-
-  body.appendChild(meta);
-
-  const actions = document.createElement('div');
-  actions.className = 'event-card-actions';
-
-  if (event.url) {
-    const eventLink = document.createElement('a');
-    eventLink.href = event.url;
-    eventLink.target = '_blank';
-    eventLink.className = 'btn-primary';
-    eventLink.textContent = 'View Event';
-    actions.appendChild(eventLink);
-  }
-
-  const editBtn = document.createElement('button');
-  editBtn.className = 'btn-text';
-  editBtn.textContent = 'Edit';
-  editBtn.onclick = () => editEvent(event);
-  actions.appendChild(editBtn);
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'btn-text';
-  deleteBtn.textContent = 'Delete';
-  deleteBtn.onclick = () => deleteEvent(event.id, event.title);
-  actions.appendChild(deleteBtn);
-
-  body.appendChild(actions);
-
-  card.appendChild(header);
-  card.appendChild(body);
+  card.querySelector('[data-action="edit"]').onclick = () => editEvent(event);
+  card.querySelector('[data-action="delete"]').onclick = () => deleteEvent(event.id, event.title);
 
   return card;
 }
@@ -368,7 +323,7 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
   };
 
   if (!formData.person_id || !formData.title) {
-    alert('Artist and title are required');
+    console.log('Artist and title are required');
     return;
   }
 
@@ -388,7 +343,7 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
     loadEvents();
   } catch (error) {
     console.error('Error saving event:', error);
-    alert('Failed to save event');
+    console.log('Failed to save event');
   }
 });
 
@@ -434,7 +389,7 @@ async function deleteEvent(id, title) {
     loadEvents();
   } catch (error) {
     console.error('Error deleting event:', error);
-    alert('Failed to delete event');
+    console.log('Failed to delete event');
   }
 }
 
@@ -528,21 +483,6 @@ function createUnverifiedEventCard(event) {
       </div>
     </div>
 
-    <div class="verification-badges">
-      ${event.verification_http_check ?
-        '<span class="verification-badge success">✓ URL Works</span>' :
-        '<span class="verification-badge failure">✗ URL Failed</span>'}
-      ${event.verification_content_match ?
-        '<span class="verification-badge success">✓ Content Matches</span>' :
-        '<span class="verification-badge failure">✗ Content Mismatch</span>'}
-      ${event.verification_date_valid ?
-        '<span class="verification-badge success">✓ Date Valid</span>' :
-        '<span class="verification-badge failure">✗ Date Invalid</span>'}
-      ${event.verification_registration_url ?
-        '<span class="verification-badge success">✓ Has Registration</span>' :
-        '<span class="verification-badge warning">⚠ No Registration URL</span>'}
-    </div>
-
     ${event.url ? `
       <div style="margin: 15px 0;">
         <a href="${event.url}" target="_blank" style="color: #667eea; text-decoration: none;">
@@ -568,25 +508,45 @@ function createUnverifiedEventCard(event) {
       </div>
     ` : ''}
 
-    ${errors.length > 0 ? `
-      <div class="verification-errors">
-        <div class="verification-errors-title">⚠️ Verification Issues:</div>
-        <ul class="verification-errors-list">
-          ${errors.map(err => `<li>${err}</li>`).join('')}
-        </ul>
-      </div>
-    ` : ''}
+    <details class="parsing-details">
+      <summary>Parsing details</summary>
+      <div class="parsing-details-body">
+        <div class="verification-badges">
+          <!-- "URL Works" badge disabled: HTTP liveness has no correctness meaning
+               (real events at bot-blocked venues fail it). Correctness lives in the evals. -->
+          ${event.verification_content_match ?
+            '<span class="verification-badge success">✓ Content Matches</span>' :
+            '<span class="verification-badge failure">✗ Content Mismatch</span>'}
+          ${event.verification_date_valid ?
+            '<span class="verification-badge success">✓ Date Valid</span>' :
+            '<span class="verification-badge failure">✗ Date Invalid</span>'}
+          ${event.verification_registration_url ?
+            '<span class="verification-badge success">✓ Has Registration</span>' :
+            '<span class="verification-badge warning">⚠ No Registration URL</span>'}
+        </div>
 
-    ${event.original_post_text ? `
-      <div class="original-post">
-        <div class="original-post-title">Original Post:</div>
-        <div class="original-post-text">${event.original_post_text.substring(0, 300)}${event.original_post_text.length > 300 ? '...' : ''}</div>
+        ${errors.length > 0 ? `
+          <div class="verification-errors">
+            <div class="verification-errors-title">⚠️ Verification Issues:</div>
+            <ul class="verification-errors-list">
+              ${errors.map(err => `<li>${err}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        ${event.original_post_text ? `
+          <div class="original-post">
+            <div class="original-post-title">Original Post:</div>
+            <div class="original-post-text">${event.original_post_text.substring(0, 300)}${event.original_post_text.length > 300 ? '...' : ''}</div>
+          </div>
+        ` : ''}
       </div>
-    ` : ''}
+    </details>
 
     <div class="event-actions">
-      <button class="btn-approve" onclick="approveEvent(${event.id})">✓ Approve Event</button>
-      <button class="btn-reject" onclick="rejectEvent(${event.id})">✗ Reject Event</button>
+      <button class="btn-approve" onclick="approveEvent(${event.id})">✓ Add to My Events</button>
+      <button class="btn-subtle" onclick="rejectEvent(${event.id})">Not interested</button>
+      <a href="#" class="report-link" onclick="reportEvent(${event.id}, this); return false;">⚑ Report invalid/incorrect event</a>
     </div>
   `;
 
@@ -594,10 +554,6 @@ function createUnverifiedEventCard(event) {
 }
 
 async function approveEvent(eventId) {
-  if (!confirm('Approve this event? It will be added to your events and expire in 7 days.')) {
-    return;
-  }
-
   try {
     const response = await fetch(`/api/events/unverified/${eventId}/approve`, {
       method: 'POST',
@@ -612,20 +568,13 @@ async function approveEvent(eventId) {
     // Reload unverified events list
     loadUnverifiedEvents();
 
-    // Show success message
-    alert('Event approved! It will appear in your Events page and expire in 7 days.');
-
   } catch (error) {
     console.error('Error approving event:', error);
-    alert('Failed to approve event: ' + error.message);
+    console.log('Failed to approve event: ' + error.message);
   }
 }
 
 async function rejectEvent(eventId) {
-  if (!confirm('Reject this event? It will be permanently deleted.')) {
-    return;
-  }
-
   try {
     const response = await fetch(`/api/events/unverified/${eventId}`, {
       method: 'DELETE'
@@ -633,15 +582,48 @@ async function rejectEvent(eventId) {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to reject event');
+      throw new Error(error.error || 'Failed to remove event');
     }
 
     // Reload unverified events list
     loadUnverifiedEvents();
 
   } catch (error) {
-    console.error('Error rejecting event:', error);
-    alert('Failed to reject event: ' + error.message);
+    console.error('Error removing event:', error);
+    console.log('Failed to remove event: ' + error.message);
+  }
+}
+
+// Report an invalid/incorrect extraction. Logs the full event (details + source +
+// original post) so we can review it and turn it into an eval correction. Does NOT
+// remove the event from the queue — reporting is a data signal, not a decision.
+async function reportEvent(eventId, linkEl) {
+  const reason = prompt(
+    "What looks wrong with this event? (optional)\n\ne.g. wrong date, wrong URL, wrong venue, not a real event, wrong person"
+  );
+  if (reason === null) return; // user cancelled
+
+  try {
+    const response = await fetch(`/api/events/unverified/${eventId}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to report event');
+    }
+
+    // Subtle inline confirmation (no popup)
+    if (linkEl) {
+      linkEl.textContent = '✓ Reported — thanks';
+      linkEl.classList.add('reported');
+    }
+
+  } catch (error) {
+    console.error('Error reporting event:', error);
+    console.log('Failed to report event: ' + error.message);
   }
 }
 
@@ -665,7 +647,7 @@ async function removeAllEvents(count) {
 
   } catch (error) {
     console.error('Error removing all events:', error);
-    alert('Failed to remove all events: ' + error.message);
+    console.log('Failed to remove all events: ' + error.message);
   }
 }
 
@@ -753,7 +735,7 @@ document.getElementById('personForm').addEventListener('submit', async (e) => {
   const notes = document.getElementById('personNotes').value.trim();
 
   if (!name) {
-    alert('Name is required');
+    console.log('Name is required');
     return;
   }
 
@@ -773,7 +755,7 @@ document.getElementById('personForm').addEventListener('submit', async (e) => {
     loadPeople();
   } catch (error) {
     console.error('Error saving person:', error);
-    alert('Failed to save artist');
+    console.log('Failed to save artist');
   }
 });
 
@@ -935,7 +917,7 @@ function displayPersonDetail(person) {
 
     } catch (error) {
       console.error('Error adding source:', error);
-      alert('Failed to add source: ' + error.message);
+      console.log('Failed to add source: ' + error.message);
     }
   });
 }
@@ -1016,14 +998,14 @@ async function deletePerson(id, name) {
     loadPeople();
   } catch (error) {
     console.error('Error deleting artist:', error);
-    alert('Failed to delete artist');
+    console.log('Failed to delete artist');
   }
 }
 
 async function aiDiscoverForPerson(id) {
   try {
     // Show loading message
-    const loadingMsg = alert('🤖 AI Discovery in progress... This may take 30-60 seconds.');
+    const loadingMsg = console.log('🤖 AI Discovery in progress... This may take 30-60 seconds.');
 
     const response = await fetch(`/api/people/${id}/discover-ai`, {
       method: 'POST',
@@ -1036,7 +1018,7 @@ async function aiDiscoverForPerson(id) {
     }
 
     const data = await response.json();
-    alert(`✅ AI Discovery complete!\nFound ${data.total_sources} verified sources.`);
+    console.log(`✅ AI Discovery complete!\nFound ${data.total_sources} verified sources.`);
 
     if (currentView === 'personDetail' && currentPersonId === id) {
       viewPerson(id);
@@ -1045,7 +1027,7 @@ async function aiDiscoverForPerson(id) {
     }
   } catch (error) {
     console.error('Error discovering sources with AI:', error);
-    alert('❌ Failed to discover sources with AI:\n' + error.message);
+    console.log('❌ Failed to discover sources with AI:\n' + error.message);
   }
 }
 
@@ -1055,7 +1037,7 @@ async function discoverForPerson(id) {
     if (!response.ok) throw new Error('Failed to discover sources');
 
     const data = await response.json();
-    alert(`Found ${data.total_sources} sources!`);
+    console.log(`Found ${data.total_sources} sources!`);
 
     if (currentView === 'personDetail' && currentPersonId === id) {
       viewPerson(id);
@@ -1064,7 +1046,7 @@ async function discoverForPerson(id) {
     }
   } catch (error) {
     console.error('Error discovering sources:', error);
-    alert('Failed to discover sources');
+    console.log('Failed to discover sources');
   }
 }
 
@@ -1144,7 +1126,7 @@ async function editSource(sourceId, currentType, currentUrl, currentLastPost = '
 
     } catch (error) {
       console.error('Error updating source:', error);
-      alert('Failed to update source: ' + error.message);
+      console.log('Failed to update source: ' + error.message);
       sourceItem.innerHTML = originalHTML;
       attachSourceEventListeners();
     }
@@ -1186,7 +1168,7 @@ async function deleteSource(sourceId) {
     viewPerson(currentPersonId);
   } catch (error) {
     console.error('Error deleting source:', error);
-    alert('Failed to delete source');
+    console.log('Failed to delete source');
   }
 }
 
@@ -1228,7 +1210,7 @@ async function analyzePostingFrequency(personId) {
   } catch (error) {
     console.error('Error analyzing frequency:', error);
     detailDiv.innerHTML = originalContent;
-    alert('Failed to analyze posting frequency: ' + error.message);
+    console.log('Failed to analyze posting frequency: ' + error.message);
   }
 }
 
@@ -1362,7 +1344,7 @@ async function extractEventsForPerson(personId) {
   } catch (error) {
     console.error('Error extracting events:', error);
     detailDiv.innerHTML = originalContent;
-    alert('Failed to extract events: ' + error.message);
+    console.log('Failed to extract events: ' + error.message);
   }
 }
 
@@ -1373,7 +1355,7 @@ async function extractAllEvents() {
   const people = data.people;
 
   if (people.length === 0) {
-    alert('No artists found. Add some artists first!');
+    console.log('No artists found. Add some artists first!');
     return;
   }
 
@@ -1464,7 +1446,7 @@ async function extractAllEvents() {
   } catch (error) {
     console.error('Error extracting all events:', error);
     eventsList.innerHTML = originalContent;
-    alert('Failed to extract events: ' + error.message);
+    console.log('Failed to extract events: ' + error.message);
   }
 }
 
@@ -1620,7 +1602,7 @@ async function runRegressionTest(personId) {
   } catch (error) {
     console.error('Error running regression test:', error);
     detailDiv.innerHTML = originalContent;
-    alert('Regression test failed: ' + error.message);
+    console.log('Regression test failed: ' + error.message);
   }
 }
 

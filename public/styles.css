@@ -745,6 +745,70 @@ input[type="text"]:focus {
   margin-bottom: 4px;
 }
 
+/* "event past" tag — small but prominent dull-red pill, right after the date */
+.past-pill {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #a94442;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 10px;
+  vertical-align: middle;
+}
+
+/* Clickable title (links to the event page) */
+.event-card-title-link {
+  color: #333;
+  text-decoration: none;
+}
+
+.event-card-title-link:hover {
+  color: #667eea;
+  text-decoration: underline;
+}
+
+/* Event page / Found on link rows */
+.event-card-link {
+  font-size: 0.9rem;
+  margin-top: 8px;
+  word-break: break-all;
+}
+
+.event-card-link a {
+  color: #667eea;
+  text-decoration: none;
+}
+
+.event-card-link a:hover {
+  text-decoration: underline;
+}
+
+.event-card-link.muted {
+  color: #888;
+}
+
+.event-card-link.muted a {
+  color: #888;
+}
+
+/* Small Edit / Delete, right-aligned */
+.event-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.event-card-footer .btn-text {
+  font-size: 0.85rem;
+}
+
 .event-card-person {
   font-size: 0.9rem;
   color: #667eea;
@@ -879,6 +943,40 @@ input[type="text"]:focus {
   margin-bottom: 10px;
 }
 
+/* Collapsible "Parsing details" — small, subtle, collapsed by default */
+.parsing-details {
+  margin: 12px 0 4px;
+}
+
+.parsing-details > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  color: #999;
+  font-size: 0.82rem;
+  padding: 2px 0;
+}
+
+.parsing-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.parsing-details > summary::after {
+  content: ' ▾';
+}
+
+.parsing-details[open] > summary::after {
+  content: ' ▴';
+}
+
+.parsing-details > summary:hover {
+  color: #666;
+}
+
+.parsing-details-body {
+  margin-top: 10px;
+}
+
 .unverified-event-meta span {
   margin-right: 15px;
 }
@@ -922,10 +1020,48 @@ input[type="text"]:focus {
 /* Event Actions */
 .event-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid #e0e0e0;
+}
+
+/* "Not interested" — subtle gray, less prominent than the primary action */
+.btn-subtle {
+  background: #eceef1;
+  color: #5a6268;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-subtle:hover {
+  background: #dde1e6;
+}
+
+/* "Report invalid/incorrect event" — a text link, pushed right, visible but not loud */
+.report-link {
+  margin-left: auto;
+  color: #c0392b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.report-link:hover {
+  text-decoration: underline;
+}
+
+.report-link.reported {
+  color: #6c757d;
+  cursor: default;
+  pointer-events: none;
 }
 
 .btn-approve {

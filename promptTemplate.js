@@ -37,8 +37,9 @@ const EVENT_SCHEMA = {
       venue: { type: ['string', 'null'] },
       city: { type: ['string', 'null'] },
       url: { type: ['string', 'null'] },
+      ticket_url: { type: ['string', 'null'] },
     },
-    required: ['title', 'date', 'venue', 'city', 'url'],
+    required: ['title', 'date', 'venue', 'city', 'url', 'ticket_url'],
   },
 };
 

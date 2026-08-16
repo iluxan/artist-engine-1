@@ -72,4 +72,42 @@ function logExtractionRun(entry) {
   return line;
 }
 
-module.exports = { logExtractionRun, LOG_FILE, SCRAPE_DIR };
+const REPORTS_FILE = path.join(LOG_DIR, 'event-reports.jsonl');
+
+/**
+ * Log a user report of an invalid/incorrect extraction. Captures everything needed
+ * to turn it into an eval correction: the extracted fields, the source, and the raw
+ * original post/page text. Appends one JSON line to logs/event-reports.jsonl.
+ * @param {object} event  an unverified_events row (with joins where available)
+ * @param {string|null} reason  free-text note on what's wrong (optional)
+ */
+function logEventReport(event, reason) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+  const entry = {
+    ts: new Date().toISOString(),
+    reason: reason || null,
+    event: {
+      id: event.id,
+      person: event.person_name || null,
+      person_id: event.person_id ?? null,
+      title: event.title,
+      date: event.date || null,
+      location: event.location || null,
+      url: event.url || null,                       // extracted event page
+      registration_url: event.registration_url || null,
+      source_url: event.original_post_url || event.source_url || null, // where we found it
+      source_type: event.source_type || null,
+      original_post_text: event.original_post_text || null, // raw content -> eval fixture
+      verification: {
+        content_match: !!event.verification_content_match,
+        date_valid: !!event.verification_date_valid,
+        registration_url: !!event.verification_registration_url,
+        errors: event.verification_errors || null,
+      },
+    },
+  };
+  fs.appendFileSync(REPORTS_FILE, JSON.stringify(entry) + '\n');
+  return entry;
+}
+
+module.exports = { logExtractionRun, logEventReport, LOG_FILE, REPORTS_FILE, SCRAPE_DIR };

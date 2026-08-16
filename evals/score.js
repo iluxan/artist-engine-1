@@ -86,28 +86,58 @@ module.exports = (output, context) => {
   const fp = got.length - matchedGot.size;      // extracted but not expected (junk / other people)
   const fn = expected.length - matchedExp.size; // real events we missed
 
-  // Field-level check: when a label pins a specific url, the extracted event must carry it.
+  // Field-level check for URL fields: when a label specifies one (a string to require,
+  // or null to require ABSENCE — the "prefer null over a broken link" rule), enforce it.
+  // Labels that omit a field entirely are treated as "don't care".
   const normUrl = u => String(u || '').trim().replace(/\/+$/, '').toLowerCase();
-  const urlErrors = pairs
-    .filter(p => p.exp.url && normUrl(p.got.url) !== normUrl(p.exp.url))
-    .map(p => `"${p.exp.title}" expected url ${p.exp.url} but got ${p.got.url || 'null'}`);
+  const urlErrors = [];
+  for (const p of pairs) {
+    for (const field of ['url', 'ticket_url']) {
+      if (Object.prototype.hasOwnProperty.call(p.exp, field) &&
+          normUrl(p.got[field]) !== normUrl(p.exp[field])) {
+        urlErrors.push(
+          `"${p.exp.title}" expected ${field} ${p.exp[field] === null ? 'null' : p.exp[field]} but got ${p.got[field] || 'null'}`
+        );
+      }
+    }
+  }
+
+  // Explicit DATE check: catch "same event, wrong date" (e.g. year 2024 instead of
+  // 2026) so it shows up as a DATE ERROR instead of a confusing false-positive + miss.
+  const looseSame = (a, b) => {
+    const at = norm(a.title), bt = norm(b.title), av = norm(a.venue), bv = norm(b.venue);
+    return (at && bt && (at.includes(bt) || bt.includes(at))) ||
+           (av && bv && (av.includes(bv) || bv.includes(av)));
+  };
+  const dateErrors = [];
+  const exUnmatched = expected.filter((_, i) => !matchedExp.has(i));
+  const goUnmatched = got.filter((_, i) => !matchedGot.has(i));
+  for (const exp of exUnmatched) {
+    for (const g of goUnmatched) {
+      if (looseSame(exp, g) && isoDate(exp.date) !== isoDate(g.date)) {
+        dateErrors.push(`"${exp.title}" expected date ${exp.date} but got ${g.date || 'null'}`);
+      }
+    }
+  }
 
   const precision = got.length ? tp / (tp + fp) : (expected.length ? 0 : 1);
   const recall = expected.length ? tp / (tp + fn) : 1;
   const f1 = precision + recall ? (2 * precision * recall) / (precision + recall) : 0;
 
-  const missed = expected.filter((_, i) => !matchedExp.has(i))
-    .map(e => `"${e.title}" (${e.date})`);
-  const junk = got.filter((_, i) => !matchedGot.has(i))
-    .map(e => `"${e.title}" (${e.date || 'no date'})`);
+  const missed = exUnmatched.map(e => `"${e.title}" (${e.date})`);
+  const junk = goUnmatched.map(e => `"${e.title}" (${e.date || 'no date'})`);
 
   const pass = fp === 0 && fn === 0 && urlErrors.length === 0;
+
+  // Dimension-explicit reason so each check (date, grounding, url, recall) is VISIBLE
+  // in the promptfoo output — not just an aggregate F1.
+  const dateNote = dateErrors.length ? `✗ DATE: ${dateErrors.join('; ')}` : '✓ dates';
+  const groundNote = fp === 0 ? '✓ grounded' : `✗ HALLUCINATED: ${junk.join('; ')}`;
+  const urlNote = urlErrors.length ? `✗ URLs: ${urlErrors.join('; ')}` : '✓ urls';
+  const recallNote = fn === 0 ? '✓ recall' : `✗ MISSED: ${missed.join('; ')}`;
   const reason =
-    `P=${precision.toFixed(2)} R=${recall.toFixed(2)} F1=${f1.toFixed(2)} ` +
-    `(matched ${tp}/${expected.length})` +
-    (junk.length ? ` | FALSE POSITIVES: ${junk.join('; ')}` : '') +
-    (missed.length ? ` | MISSED: ${missed.join('; ')}` : '') +
-    (urlErrors.length ? ` | URL ERRORS: ${urlErrors.join('; ')}` : '');
+    `matched ${tp}/${expected.length} · P=${precision.toFixed(2)} R=${recall.toFixed(2)} F1=${f1.toFixed(2)}` +
+    ` | ${dateNote} | ${groundNote} | ${urlNote} | ${recallNote}`;
 
   return { pass, score: f1, reason };
 };

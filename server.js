@@ -4,6 +4,7 @@ const { discoverSourcesForPerson } = require('./sourceDiscovery');
 const { discoverSourcesWithAI } = require('./aiSourceDiscovery');
 const { analyzeAllSources } = require('./analyzePostingFrequency');
 const { extractEventsFromSource } = require('./extractEvents');
+const { logEventReport } = require('./extractionLog');
 const db = require('./db');
 
 const app = express();
@@ -376,7 +377,7 @@ app.post('/api/events/unverified/:id/approve', (req, res) => {
     res.json({
       success: true,
       event,
-      message: 'Event approved and will expire in 7 days'
+      message: 'Event approved'
     });
   } catch (error) {
     console.error('Error approving event:', error);
@@ -393,6 +394,23 @@ app.delete('/api/events/unverified', (req, res) => {
   } catch (error) {
     console.error('Error clearing review queue:', error);
     res.status(500).json({ error: 'Failed to clear review queue' });
+  }
+});
+
+// Report an invalid/incorrect extracted event (logs it for eval review; does not delete)
+app.post('/api/events/unverified/:id/report', (req, res) => {
+  try {
+    const event = db.getUnverifiedEventById(parseInt(req.params.id));
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    const reason = (req.body && typeof req.body.reason === 'string') ? req.body.reason.trim() : null;
+    logEventReport(event, reason || null);
+    console.log(`⚑ Event reported (id ${event.id}): ${reason || '(no reason given)'}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error reporting event:', error);
+    res.status(500).json({ error: 'Failed to report event' });
   }
 });
 

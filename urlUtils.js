@@ -8,15 +8,23 @@ function stripTracking(url) {
   if (!url || typeof url !== 'string') return null;
   const trimmed = url.trim();
   if (!trimmed) return null;
+
+  // Reject truncated display URLs (e.g. Twitter/X clips link text with an ellipsis,
+  // yielding "eventbrite.com/e/becky-chambe…"). Prefer NO link over a broken one.
+  if (/[…]|\.\.\./.test(trimmed)) return null;
+
+  let u;
   try {
-    const u = new URL(trimmed);
-    u.search = '';
-    u.hash = '';
-    return u.toString();
+    u = new URL(trimmed);
   } catch (e) {
-    // Not a full absolute URL — best-effort strip of ?query and #fragment.
-    return trimmed.split('?')[0].split('#')[0];
+    // Not a valid absolute URL (e.g. scheme-less/partial) — don't store a broken link.
+    return null;
   }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+
+  u.search = '';
+  u.hash = '';
+  return u.toString();
 }
 
 module.exports = { stripTracking };

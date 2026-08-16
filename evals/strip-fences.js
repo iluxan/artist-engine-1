@@ -19,7 +19,10 @@ module.exports = (output) => {
     const events = JSON.parse(text);
     if (Array.isArray(events)) {
       for (const e of events) {
-        if (e && typeof e === 'object' && e.url) e.url = stripTracking(e.url);
+        if (e && typeof e === 'object') {
+          if (e.url) e.url = stripTracking(e.url);
+          if (e.ticket_url) e.ticket_url = stripTracking(e.ticket_url);
+        }
       }
       return JSON.stringify(events);
     }

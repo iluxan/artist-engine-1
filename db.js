@@ -179,6 +179,25 @@ function initializeDatabase() {
     console.error('Error during events table migration:', e.message);
   }
 
+  // Ensure newer event columns exist on databases created before they were added.
+  // (SQLite has no "ADD COLUMN IF NOT EXISTS", so check PRAGMA first.)
+  try {
+    const cols = db.prepare('PRAGMA table_info(events)').all().map(c => c.name);
+    const ensure = [
+      ['expires_at', 'DATETIME'],
+      ['approved_at', 'DATETIME'],
+      ['verification_status', 'TEXT'],
+    ];
+    for (const [name, type] of ensure) {
+      if (!cols.includes(name)) {
+        db.exec(`ALTER TABLE events ADD COLUMN ${name} ${type}`);
+        console.log(`Added missing events.${name} column`);
+      }
+    }
+  } catch (e) {
+    console.error('Error ensuring event columns:', e.message);
+  }
+
   console.log('Database initialized successfully');
 }
 
@@ -558,9 +577,9 @@ function approveEvent(unverifiedEventId) {
     throw new Error('Unverified event not found');
   }
 
-  // Calculate expiry date (7 days from now)
+  // Events are kept forever for now (no expiry). approved_at is still recorded.
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = null;
 
   // Create verification status JSON
   const verificationStatus = {
@@ -604,7 +623,7 @@ function approveEvent(unverifiedEventId) {
     eventData.ticket_url,
     eventData.status,
     now.toISOString(),
-    expiresAt.toISOString(),
+    expiresAt ? expiresAt.toISOString() : null,
     JSON.stringify(verificationStatus),
     JSON.stringify(eventData.raw_data)
   );

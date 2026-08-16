@@ -115,7 +115,10 @@ If the page is just a homepage, countdown, or doesn't match, answer NO.`;
  */
 async function verifyEvent(event) {
   const results = {
-    httpCheck: false,
+    // "URL Works" (HTTP liveness) check DISABLED — it has no correctness meaning
+    // (real events at bot-blocked venues fail it; hallucinated events at live pages
+    // pass it). Correctness is guarded by the promptfoo golden set instead.
+    // httpCheck: false,
     contentValidation: false,
     dateSanity: false,
     registrationUrl: false,
@@ -124,7 +127,7 @@ async function verifyEvent(event) {
 
   console.log(`      [Verify] Checking: ${event.title.substring(0, 50)}...`);
 
-  // Step 1: HTTP Check
+  // Fetch the page ONLY to feed Content Matches (not to score "URL Works").
   if (event.url) {
     try {
       const response = await axios.get(event.url, {
@@ -133,12 +136,9 @@ async function verifyEvent(event) {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
-      results.httpCheck = response.status === 200;
 
-      if (results.httpCheck) {
-        console.log(`      [Verify] ✓ HTTP check passed`);
-
-        // Step 2: AI Content Validation (only if HTTP check passed)
+      if (response.status === 200) {
+        // AI Content Validation (Content Matches)
         const $ = cheerio.load(response.data);
         const pageText = $('body').text().replace(/\s+/g, ' ');
         results.contentValidation = await validateEventContent(event, pageText);
@@ -149,19 +149,14 @@ async function verifyEvent(event) {
           console.log(`      [Verify] ✗ Content validation failed`);
           results.errors.push('Page content does not match event details');
         }
-      } else {
-        console.log(`      [Verify] ✗ HTTP check failed`);
-        results.errors.push(`HTTP status: ${response.status}`);
       }
     } catch (error) {
-      console.log(`      [Verify] ✗ HTTP check failed: ${error.message}`);
-      results.errors.push(`HTTP check failed: ${error.message}`);
+      // Fetch failed — can't run Content Matches; NOT treated as a URL-Works failure.
+      console.log(`      [Verify] content fetch failed (not scored): ${error.message}`);
     }
-  } else {
-    results.errors.push('No URL provided');
   }
 
-  // Step 3: Date Sanity Check
+  // Date Sanity Check
   results.dateSanity = validateEventDate(event.date);
   if (results.dateSanity) {
     console.log(`      [Verify] ✓ Date validation passed`);
@@ -180,7 +175,7 @@ async function verifyEvent(event) {
   }
 
   const passedCount = Object.values(results).filter(v => v === true).length;
-  console.log(`      [Verify] Result: ${passedCount}/4 checks passed`);
+  console.log(`      [Verify] Result: ${passedCount}/3 checks passed`);
 
   return results;
 }
@@ -243,7 +238,9 @@ async function extractEventsFromSource(url, sourceType, personId, sourceId, pers
       // or null. We deliberately do NOT fall back to the source URL here — that
       // conflates "the event page" with "where we found it".
       url: stripTracking(event.url),
-      registration_url: event.registration_url || null,
+      // ticket_url from the content becomes the registration/ticket link the review
+      // queue + verification check look for.
+      registration_url: stripTracking(event.ticket_url),
       // source_url: where we found it (the page/post we scraped). Always known.
       original_post_url: url,
       original_post_text: scrape.content.substring(0, 5000),
